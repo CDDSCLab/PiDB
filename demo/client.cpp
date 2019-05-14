@@ -107,7 +107,7 @@ static void* sender(void* arg) {
 }
 
 int main(int argc, char* argv[]) {
-    GFLAGS_NS::ParseCommandLineFlags(&argc, &argv, true);
+    //GFLAGS_NS::ParseCommandLineFlags(&argc, &argv, true);
     butil::AtExitManager exit_manager;
 
     // Register configuration of target group to RouteTable
@@ -116,7 +116,6 @@ int main(int argc, char* argv[]) {
                    << " of group " << FLAGS_group;
         return -1;
     }
-
     std::vector<bthread_t> tids;
     tids.resize(FLAGS_thread_num);
     if (!FLAGS_use_bthread) {

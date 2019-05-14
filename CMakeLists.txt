@@ -1,5 +1,5 @@
-cmake_minimum_required(VERSION 2.8.10)
-project(block C CXX)
+cmake_minimum_required(VERSION  3.10)
+project(pidb C CXX)
 
 option(EXAMPLE_LINK_SO "Whether examples are linked dynamically" OFF)
 option(LINK_TCMALLOC "Link tcmalloc if possible" ON)
@@ -9,17 +9,26 @@ option(LINK_TCMALLOC "Link tcmalloc if possible" ON)
 #    OUTPUT_VARIABLE OUTPUT_PATH
 #)
 
+set(CMAKE_PROJECT_VERSION 0)
+set(CMAKE_PROJECT_VERSION_MAJOR 0)
+set(CMAKE_PROJECT_VERSION_MAJOR 1)
+
 set(CMAKE_PREFIX_PATH ${OUTPUT_PATH})
 
 include(FindThreads)
 include(FindProtobuf)
 
+include_directories(
+  "${PROJECT_SOURCE_DIR}"
+)
+set(PIDB_PUBLIC_INCLUDE_DIR "include/pidb")
+set(PIDB_SERVER_DIR "src/server")
 if (NOT PROTOBUF_PROTOC_EXECUTABLE)
     get_filename_component(PROTO_LIB_DIR ${PROTOBUF_LIBRARY} DIRECTORY)
     set (PROTOBUF_PROTOC_EXECUTABLE "${PROTO_LIB_DIR}/../bin/protoc")
 endif()
 
-protobuf_generate_cpp(PROTO_SRC PROTO_HEADER pidb.proto)
+protobuf_generate_cpp(PROTO_SRC PROTO_HEADER "${PROJECT_SOURCE_DIR}/demo/pidb.proto")
 # include PROTO_HEADER
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
@@ -41,7 +50,9 @@ find_path(BRAFT_INCLUDE_PATH NAMES braft/raft.h)
 if ((NOT BRAFT_INCLUDE_PATH) OR (NOT BRAFT_LIB))
     message (FATAL_ERROR "Fail to find braft")
 endif()
+
 include_directories(${BRAFT_INCLUDE_PATH})
+
 
 find_path(GFLAGS_INCLUDE_PATH gflags/gflags.h)
 find_library(GFLAGS_LIBRARY NAMES gflags libgflags)
@@ -106,10 +117,44 @@ find_library(LEVELDB_LIB NAMES leveldb)
 if ((NOT LEVELDB_INCLUDE_PATH) OR (NOT LEVELDB_LIB))
     message(FATAL_ERROR "Fail to find leveldb")
 endif()
-include_directories(${LEVELDB_INCLUDE_PATH})
 
-add_executable(db_client client.cpp ${PROTO_SRC} ${PROTO_HEADER})
-add_executable(db_server server.cpp ${PROTO_SRC} ${PROTO_HEADER})
+
+
+add_subdirectory("${PROJECT_SOURCE_DIR}/src/libs/json11")
+
+include_directories("${PROJECT_SOURCE_DIR}/src/libs")
+include_directories(${LEVELDB_INCLUDE_PATH})
+include_directories("${PROJECT_SOURCE_DIR}/src")
+include_directories("${PROJECT_SOURCE_DIR}/src/include")
+include_directories("${PROJECT_SOURCE_DIR}/src/server")
+
+
+add_executable(pidb "${PROJECT_SOURCE_DIR}/src/server/main.cpp")
+target_sources(pidb PRIVATE
+	${PROTO_SRC}
+    ${PROTO_HEADER}
+        "${PROJECT_SOURCE_DIR}/src/server/route_table.cpp"
+        "${PROJECT_SOURCE_DIR}/src/server/route_table.h"
+        "${PROJECT_SOURCE_DIR}/src/port/port_stdcxx.h"
+    "${PROJECT_SOURCE_DIR}/src/port/port.h"
+    "${PROJECT_SOURCE_DIR}/src/include/pidb/status.h"
+    "${PROJECT_SOURCE_DIR}/src/util/status.cc"
+    "${PROJECT_SOURCE_DIR}/src/port/port_stdcxx.h"
+    "${PROJECT_SOURCE_DIR}/${PIDB_SERVER_DIR}/server.h"
+    "${PROJECT_SOURCE_DIR}/${PIDB_SERVER_DIR}/server.cpp"
+    "${PROJECT_SOURCE_DIR}/${PIDB_SERVER_DIR}/raftnode.h"
+    "${PROJECT_SOURCE_DIR}/${PIDB_SERVER_DIR}/raftnode.cpp"
+    "${PROJECT_SOURCE_DIR}/${PIDB_SERVER_DIR}/shareddb.h"
+    "${PROJECT_SOURCE_DIR}/${PIDB_SERVER_DIR}/pidb_service_impl.h"
+    "${PROJECT_SOURCE_DIR}/src/include/pidb/options.h"
+    "${PROJECT_SOURCE_DIR}/${PIDB_SERVER_DIR}/pidb_service_impl.cpp"
+)
+
+target_include_directories(pidb
+  PUBLIC
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src/include>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+)
 
 set(DYNAMIC_LIB
     ${CMAKE_THREAD_LIBS_INIT}
@@ -119,6 +164,7 @@ set(DYNAMIC_LIB
     ${LEVELDB_LIB}
     ${BRAFT_LIB}
     ${BRPC_LIB}
+        json11
     rt
     ssl
     crypto
@@ -126,11 +172,8 @@ set(DYNAMIC_LIB
     z
     )
 
-target_link_libraries(db_client
+target_link_libraries(pidb
                       "-Xlinker \"-(\""
                       ${DYNAMIC_LIB}
                       "-Xlinker \"-)\"")
-target_link_libraries(db_server
-                      "-Xlinker \"-(\""
-                      ${DYNAMIC_LIB}
-                      "-Xlinker \"-)\"")
+
