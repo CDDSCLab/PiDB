@@ -112,7 +112,7 @@ void RaftNode::on_snapshot_save(braft::SnapshotWriter* writer,braft::Closure* do
 int RaftNode::on_snapshot_load(braft::SnapshotReader* reader){
     //TO-DO
     LOG(INFO)<<"ON_SNAPSHOT_LOAD";
-    return 1;
+    return 0;
 }
 
 void RaftNode::on_leader_start(int64_t term){

@@ -13,13 +13,13 @@ namespace pidb{
 class RaftNode;
 class Server{
 public:
-	explicit Server(ServerOption serveroption);
+	explicit Server(const ServerOption &serveroption);
 	//no copy and =
 	Server(const Server&) = delete;
 	Server& operator = (const Server&) = delete;
 
-    Status start();
-    Status stop();
+    Status Start();
+    Status Stop();
 
 	//TO-DO 获得server的信息 要先定义一个获得信息的handler
 	class InfoHandler;
@@ -45,12 +45,11 @@ public:
     ~Server(){}
 private:
 	int32_t port_;
-	brpc::Server server_;
 	scoped_db db_;
 	//可能需要换一种数据结构,暂时用map代替
 	std::map<std::string,std::shared_ptr<RaftNode>> nodes_;
 	std::string data_path_;
 };
-}
+}//namespace pidb
 
 #endif // STORAGE_LEVELDB_DB_FILENAME_H_

@@ -6,7 +6,7 @@
 
 namespace  pidb
 {
-     Server::Server(ServerOption serveroption):port_(serveroption.port)
+     Server::Server(const ServerOption &serveroption):port_(serveroption.port)
                     ,data_path_(std::move(serveroption.data_path)){
         //TO-DO recover from log
         //启动本地的raftnode，如果没有则初始化一个      
@@ -16,7 +16,7 @@ namespace  pidb
         //raft 和server共享一个rpc
         option.port = serveroption.port;
         option.group = "1";
-        option.conf="127.0.1.1:8100:0 127.0.1.1:8101:0 127.0.1.1:8101:0";
+        option.conf="127.0.1.1:8100:0 127.0.1.1:8101:0 127.0.1.1:8102:0";
         auto s = registerRaftNode(option);
         if(!s.ok()){
             LOG(INFO)<<"Fail to add raft node";
@@ -24,7 +24,7 @@ namespace  pidb
     }
 
     Status Server::registerRaftNode(const RaftOption &option){
-        if(nodes_.find(option.group)==nodes_.end()) {
+        if(nodes_.find(option.group)!=nodes_.end()) {
             std::ostringstream s;
             s << "There is alreay existing raftnode in" << option.group;
             return Status::Corruption(option.group, s.str());
@@ -38,14 +38,8 @@ namespace  pidb
 
     //打开leveldb
     //加载配置，遍历nodes_里的raft 把他们全部启动起来
-    Status Server::start(){
-        for(auto const n:nodes_){
-            if(!n.second->start().ok()){
-                LOG(ERROR)<<"Fail to start"<<n.first<<"node";
-                //TO-DO 是否记录失败信息，重试？
-                return Status::Corruption(n.first,"Fail to start");
-            }
-        }
+    Status Server::Start(){
+
         //开启leveldb
         std::string db_path = data_path_+"/database";
         leveldb::DB *db;
@@ -57,20 +51,30 @@ namespace  pidb
             return Status::Corruption(db_path,"Fail to open db");
         }
         db_ = new SharedDB(db);
+
         //可能存在部分节点启动失败，暂时返回OK
+
+
+        for(auto const n:nodes_){
+            if(!n.second->start().ok()){
+                LOG(ERROR)<<"Fail to start"<<n.first<<"node";
+                //TO-DO 是否记录失败信息，重试？
+                return Status::Corruption(n.first,"Fail to start");
+            }
+        }
         return Status::OK();
     }
 
-    Status Server::stop(){
+    Status Server::Stop(){
         for(const auto n:nodes_){
             //TO-DO 判断节点信息
             n.second->shutdown();
         }
-        server_.Stop(0);
+        //server_.Stop(0);
         for(const auto n:nodes_){
             n.second->join();
         }
-        server_.Join();
+        //server_.Join();
         nodes_.clear();
     return Status::OK();
     }

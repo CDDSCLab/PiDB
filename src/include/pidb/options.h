@@ -23,6 +23,8 @@ namespace pidb {
         std::string data_path;
         int32_t port;
         //默认的配置
+        ServerOption(const std::string &path,int32_t p)
+            :data_path(path),port(p){};
         ServerOption():data_path("./data"),port(8100){}
     };
 
