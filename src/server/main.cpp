@@ -12,9 +12,7 @@ int main(int argc,char *argv[]){
     //默认参数
 
 
-
-
-    
+    pidb::RouteTable r;
     r.AddRecord("","a","group1");
     r.AddRecord("c","d","group2");
     r.AddRecord("d","f","group3");
