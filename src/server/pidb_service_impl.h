@@ -7,15 +7,20 @@ class Server;
 class PiDBServiceImpl:public PiDBService{
     public:
     explicit PiDBServiceImpl(Server* server):server_(server){};
-    void write(::google::protobuf::RpcController* controller,
+    void Write(::google::protobuf::RpcController* controller,
              const ::pidb::PiDBRequest* request,
             ::pidb::PiDBResponse* response,
             ::google::protobuf::Closure* done);
 
-    void read(::google::protobuf::RpcController* controller,
+    void Put(::google::protobuf::RpcController* controller,
                const ::pidb::PiDBRequest* request,
                ::pidb::PiDBResponse* response,
                ::google::protobuf::Closure* done);
+
+    void WriteBatch(::google::protobuf::RpcController* controller,
+             const ::pidb::PiDBRequest* request,
+             ::pidb::PiDBResponse* response,
+             ::google::protobuf::Closure* done);
     private:
     Server *server_;
 };

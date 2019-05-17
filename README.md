@@ -21,4 +21,9 @@ run_server.sh 和 run_client.sh
 ```
 
 
+# 关于测试
+1. 请将所有的单元测试写在根目录的test文件夹下
+2. 使用gtest的测试框架，具体请参考gtest的用法
+3. 注意一些包的依赖，比如我要测试pidb server的一些功能，
+要链接pidb的库文件
 

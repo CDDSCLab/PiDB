@@ -2,7 +2,7 @@
 #include "server.h"
 #include "brpc/controller.h"
 namespace pidb {
-    void PiDBServiceImpl::write(::google::protobuf::RpcController *controller,
+    void PiDBServiceImpl::Write(::google::protobuf::RpcController *controller,
                                 const ::pidb::PiDBRequest *request,
                                 ::pidb::PiDBResponse *response,
                                 ::google::protobuf::Closure *done) {
@@ -10,10 +10,18 @@ namespace pidb {
         server_->Put(request, response, done);
     }
 
-    void PiDBServiceImpl::read(::google::protobuf::RpcController *controller,
+    void PiDBServiceImpl::Put(::google::protobuf::RpcController *controller,
                                const ::pidb::PiDBRequest *request,
                                ::pidb::PiDBResponse *response,
                                ::google::protobuf::Closure *done) {
+        auto cntl = static_cast<brpc::Controller *>(controller);
+        brpc::ClosureGuard done_guard(done);
+        server_->Read(request, response, done);
+    }
+    void PiDBServiceImpl::WriteBatch(::google::protobuf::RpcController *controller,
+                              const ::pidb::PiDBRequest *request,
+                              ::pidb::PiDBResponse *response,
+                              ::google::protobuf::Closure *done) {
         auto cntl = static_cast<brpc::Controller *>(controller);
         brpc::ClosureGuard done_guard(done);
         server_->Read(request, response, done);

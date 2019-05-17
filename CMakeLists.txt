@@ -130,14 +130,14 @@ include_directories("${PROJECT_SOURCE_DIR}/src/include")
 include_directories("${PROJECT_SOURCE_DIR}/src/server")
 
 
-add_library(pidb "")
+add_library(pidb SHARED "")
 add_executable(pidb_server src/server/main.cpp)
-target_sources(pidb PRIVATE
+target_sources(pidb PUBLIC
 	${PROTO_SRC}
     ${PROTO_HEADER}
-        "${PROJECT_SOURCE_DIR}/src/server/route_table.cpp"
-        "${PROJECT_SOURCE_DIR}/src/server/route_table.h"
-        "${PROJECT_SOURCE_DIR}/src/port/port_stdcxx.h"
+    "${PROJECT_SOURCE_DIR}/src/server/route_table.cpp"
+    "${PROJECT_SOURCE_DIR}/src/server/route_table.h"
+    "${PROJECT_SOURCE_DIR}/src/port/port_stdcxx.h"
     "${PROJECT_SOURCE_DIR}/src/port/port.h"
     "${PROJECT_SOURCE_DIR}/src/include/pidb/status.h"
     "${PROJECT_SOURCE_DIR}/src/util/status.cc"
@@ -149,13 +149,15 @@ target_sources(pidb PRIVATE
     "${PROJECT_SOURCE_DIR}/${PIDB_SERVER_DIR}/raftnode.cpp"
     "${PROJECT_SOURCE_DIR}/${PIDB_SERVER_DIR}/shareddb.h"
     "${PROJECT_SOURCE_DIR}/${PIDB_SERVER_DIR}/pidb_service_impl.h"
-    "${PROJECT_SOURCE_DIR}/${PIDB_SERVER_DIR}/context.h"
-    "${PROJECT_SOURCE_DIR}/${PIDB_SERVER_DIR}/context.cpp"
-    "${PROJECT_SOURCE_DIR}/src/include/pidb/options.h"
     "${PROJECT_SOURCE_DIR}/${PIDB_SERVER_DIR}/pidb_service_impl.cpp"
+    "${PROJECT_SOURCE_DIR}/${PIDB_SERVER_DIR}/context_cache.h"
+    "${PROJECT_SOURCE_DIR}/${PIDB_SERVER_DIR}/context_cache.cpp"
+
+    "${PROJECT_SOURCE_DIR}/src/include/pidb/options.h"
+
 )
 
-target_include_directories(pidb
+target_include_directories(pidb_server
   PUBLIC
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src/include>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
@@ -176,10 +178,12 @@ set(DYNAMIC_LIB
     dl
     z
     )
+enable_testing()
+add_subdirectory(test)
 
 target_link_libraries(pidb
                       "-Xlinker \"-(\""
                       ${DYNAMIC_LIB}
                       "-Xlinker \"-)\"")
 
-target_link_libraries(pidb_server pidb )
+target_link_libraries(pidb_server pidb dl)

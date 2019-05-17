@@ -195,14 +195,14 @@ void AddDescriptorsImpl() {
       "\016PiDBWriteBatch\022&\n\nWriteBatch\030\001 \003(\0132\022.pi"
       "db.PiDBOperator\"W\n\014PiDBResponse\022\017\n\007succe"
       "ss\030\001 \002(\010\022\021\n\told_value\030\002 \001(\t\022\021\n\tnew_value"
-      "\030\003 \001(\t\022\020\n\010redirect\030\004 \001(\t2\244\001\n\013PiDBService"
-      "\022.\n\005write\022\021.pidb.PiDBRequest\032\022.pidb.PiDB"
-      "Response\022-\n\004read\022\021.pidb.PiDBRequest\032\022.pi"
-      "db.PiDBResponse\0226\n\nwritebatch\022\024.pidb.PiD"
-      "BWriteBatch\032\022.pidb.PiDBResponseB\003\200\001\001"
+      "\030\003 \001(\t\022\020\n\010redirect\030\004 \001(\t2\234\001\n\013PiDBService"
+      "\022,\n\003Put\022\021.pidb.PiDBRequest\032\022.pidb.PiDBRe"
+      "sponse\022,\n\003Get\022\021.pidb.PiDBRequest\032\022.pidb."
+      "PiDBResponse\0221\n\005Write\022\024.pidb.PiDBWriteBa"
+      "tch\032\022.pidb.PiDBResponseB\003\200\001\001"
   };
   ::google::protobuf::DescriptorPool::InternalAddGeneratedFile(
-      descriptor, 436);
+      descriptor, 428);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "pidb.proto", &protobuf_RegisterTypes);
 }
@@ -1572,27 +1572,27 @@ const ::google::protobuf::ServiceDescriptor* PiDBService::GetDescriptor() {
   return descriptor();
 }
 
-void PiDBService::write(::google::protobuf::RpcController* controller,
+void PiDBService::Put(::google::protobuf::RpcController* controller,
                          const ::pidb::PiDBRequest*,
                          ::pidb::PiDBResponse*,
                          ::google::protobuf::Closure* done) {
-  controller->SetFailed("Method write() not implemented.");
+  controller->SetFailed("Method Put() not implemented.");
   done->Run();
 }
 
-void PiDBService::read(::google::protobuf::RpcController* controller,
+void PiDBService::Get(::google::protobuf::RpcController* controller,
                          const ::pidb::PiDBRequest*,
                          ::pidb::PiDBResponse*,
                          ::google::protobuf::Closure* done) {
-  controller->SetFailed("Method read() not implemented.");
+  controller->SetFailed("Method Get() not implemented.");
   done->Run();
 }
 
-void PiDBService::writebatch(::google::protobuf::RpcController* controller,
+void PiDBService::Write(::google::protobuf::RpcController* controller,
                          const ::pidb::PiDBWriteBatch*,
                          ::pidb::PiDBResponse*,
                          ::google::protobuf::Closure* done) {
-  controller->SetFailed("Method writebatch() not implemented.");
+  controller->SetFailed("Method Write() not implemented.");
   done->Run();
 }
 
@@ -1604,19 +1604,19 @@ void PiDBService::CallMethod(const ::google::protobuf::MethodDescriptor* method,
   GOOGLE_DCHECK_EQ(method->service(), protobuf_pidb_2eproto::file_level_service_descriptors[0]);
   switch(method->index()) {
     case 0:
-      write(controller,
+      Put(controller,
              ::google::protobuf::down_cast<const ::pidb::PiDBRequest*>(request),
              ::google::protobuf::down_cast< ::pidb::PiDBResponse*>(response),
              done);
       break;
     case 1:
-      read(controller,
+      Get(controller,
              ::google::protobuf::down_cast<const ::pidb::PiDBRequest*>(request),
              ::google::protobuf::down_cast< ::pidb::PiDBResponse*>(response),
              done);
       break;
     case 2:
-      writebatch(controller,
+      Write(controller,
              ::google::protobuf::down_cast<const ::pidb::PiDBWriteBatch*>(request),
              ::google::protobuf::down_cast< ::pidb::PiDBResponse*>(response),
              done);
@@ -1672,21 +1672,21 @@ PiDBService_Stub::~PiDBService_Stub() {
   if (owns_channel_) delete channel_;
 }
 
-void PiDBService_Stub::write(::google::protobuf::RpcController* controller,
+void PiDBService_Stub::Put(::google::protobuf::RpcController* controller,
                               const ::pidb::PiDBRequest* request,
                               ::pidb::PiDBResponse* response,
                               ::google::protobuf::Closure* done) {
   channel_->CallMethod(descriptor()->method(0),
                        controller, request, response, done);
 }
-void PiDBService_Stub::read(::google::protobuf::RpcController* controller,
+void PiDBService_Stub::Get(::google::protobuf::RpcController* controller,
                               const ::pidb::PiDBRequest* request,
                               ::pidb::PiDBResponse* response,
                               ::google::protobuf::Closure* done) {
   channel_->CallMethod(descriptor()->method(1),
                        controller, request, response, done);
 }
-void PiDBService_Stub::writebatch(::google::protobuf::RpcController* controller,
+void PiDBService_Stub::Write(::google::protobuf::RpcController* controller,
                               const ::pidb::PiDBWriteBatch* request,
                               ::pidb::PiDBResponse* response,
                               ::google::protobuf::Closure* done) {

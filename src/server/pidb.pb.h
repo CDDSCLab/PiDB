@@ -663,15 +663,15 @@ class PiDBService : public ::google::protobuf::Service {
 
   static const ::google::protobuf::ServiceDescriptor* descriptor();
 
-  virtual void write(::google::protobuf::RpcController* controller,
+  virtual void Put(::google::protobuf::RpcController* controller,
                        const ::pidb::PiDBRequest* request,
                        ::pidb::PiDBResponse* response,
                        ::google::protobuf::Closure* done);
-  virtual void read(::google::protobuf::RpcController* controller,
+  virtual void Get(::google::protobuf::RpcController* controller,
                        const ::pidb::PiDBRequest* request,
                        ::pidb::PiDBResponse* response,
                        ::google::protobuf::Closure* done);
-  virtual void writebatch(::google::protobuf::RpcController* controller,
+  virtual void Write(::google::protobuf::RpcController* controller,
                        const ::pidb::PiDBWriteBatch* request,
                        ::pidb::PiDBResponse* response,
                        ::google::protobuf::Closure* done);
@@ -704,15 +704,15 @@ class PiDBService_Stub : public PiDBService {
 
   // implements PiDBService ------------------------------------------
 
-  void write(::google::protobuf::RpcController* controller,
+  void Put(::google::protobuf::RpcController* controller,
                        const ::pidb::PiDBRequest* request,
                        ::pidb::PiDBResponse* response,
                        ::google::protobuf::Closure* done);
-  void read(::google::protobuf::RpcController* controller,
+  void Get(::google::protobuf::RpcController* controller,
                        const ::pidb::PiDBRequest* request,
                        ::pidb::PiDBResponse* response,
                        ::google::protobuf::Closure* done);
-  void writebatch(::google::protobuf::RpcController* controller,
+  void Write(::google::protobuf::RpcController* controller,
                        const ::pidb::PiDBWriteBatch* request,
                        ::pidb::PiDBResponse* response,
                        ::google::protobuf::Closure* done);
