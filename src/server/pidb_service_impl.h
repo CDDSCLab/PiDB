@@ -11,6 +11,7 @@ class PiDBServiceImpl:public PiDBService{
              const ::pidb::PiDBRequest* request,
             ::pidb::PiDBResponse* response,
             ::google::protobuf::Closure* done);
+
     void read(::google::protobuf::RpcController* controller,
                const ::pidb::PiDBRequest* request,
                ::pidb::PiDBResponse* response,

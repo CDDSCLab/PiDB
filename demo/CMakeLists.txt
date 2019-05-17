@@ -14,6 +14,9 @@ set(CMAKE_PREFIX_PATH ${OUTPUT_PATH})
 include(FindThreads)
 include(FindProtobuf)
 
+
+include_directories(${Protobuf_INCLUDE_DIRS})
+
 if (NOT PROTOBUF_PROTOC_EXECUTABLE)
     get_filename_component(PROTO_LIB_DIR ${PROTOBUF_LIBRARY} DIRECTORY)
     set (PROTOBUF_PROTOC_EXECUTABLE "${PROTO_LIB_DIR}/../bin/protoc")

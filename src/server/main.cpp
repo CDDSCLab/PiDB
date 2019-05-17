@@ -2,7 +2,8 @@
 #include <gflags/gflags.h>
 #include "server.h"
 #include "route_table.h"
-
+#include <leveldb/db.h>
+#include "context.h"
 DEFINE_string(data_path,"./data","Path of data stored on");
 DEFINE_int32(port,8100,"port of server to listen on");
 
@@ -33,31 +34,44 @@ int main(int argc,char *argv[]){
 //
 //    server.Stop(0);
 
-    brpc::Server server;
+    //初始化server
+//    brpc::Server server;
+//    pidb::Server s({FLAGS_data_path,FLAGS_port});
+//    pidb::PiDBServiceImpl service(&s);
+//    //增加Node Server的服务
+//    if (server.AddService(&service,
+//                          brpc::SERVER_DOESNT_OWN_SERVICE) != 0) {
+//        LOG(ERROR) << "Fail to add service";
+//        return -1;
+//    }
+//    //增加raft的服务，与Node Server共享
+//
+//    if (braft::add_service(&server, FLAGS_port) != 0) {
+//        LOG(ERROR) << "Fail to add raft service";
+//        return -1;
+//    }
+//    //启动brpc server
+//    if (server.Start(FLAGS_port, NULL) != 0) {
+//        LOG(ERROR) << "Fail to start Server";
+//        return -1;
+//    }
+//    //启动Node server
+//    s.Start();
+//    //等待用户结束
+//    while (!brpc::IsAskedToQuit()){
+//        sleep(1);
+//    }
+//    server.Join();
 
-    pidb::Server s({FLAGS_data_path,FLAGS_port});
-    pidb::PiDBServiceImpl service(&s);
-    if (server.AddService(&service,
-                          brpc::SERVER_DOESNT_OWN_SERVICE) != 0) {
-        LOG(ERROR) << "Fail to add service";
-        return -1;
-    }
+    leveldb::DB* db;
+    leveldb::Options options;
+    options.create_if_missing = true;
+    leveldb::Status status = leveldb::DB::Open(options, "/tmp/testdb", &db);
+    assert(status.ok());
 
-    if (braft::add_service(&server, FLAGS_port) != 0) {
-        LOG(ERROR) << "Fail to add raft service";
-        return -1;
-    }
-
-    if (server.Start(FLAGS_port, NULL) != 0) {
-        LOG(ERROR) << "Fail to start Server";
-        return -1;
-    }
-    s.Start();
-
-    while (!brpc::IsAskedToQuit()){
-        sleep(1);
-    }
-    server.Join();
+    pidb::ContextCache<pidb::SnapshotContext> a;
+    auto s  = std::unique_ptr<pidb::SnapshotContext>(new pidb::SnapshotContext (db->GetSnapshot()));
+    a.Put(std::move(s));
 
     return 0;
 

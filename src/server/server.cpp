@@ -16,7 +16,7 @@ namespace  pidb
         //raft 和server共享一个rpc
         option.port = serveroption.port;
         option.group = "1";
-        option.conf="127.0.1.1:8100:0 127.0.1.1:8101:0 127.0.1.1:8102:0";
+        option.conf="127.0.1.1:8100:0,127.0.1.1:8101:0,127.0.1.1:8102:0";
         auto s = registerRaftNode(option);
         if(!s.ok()){
             LOG(INFO)<<"Fail to add raft node";
@@ -46,6 +46,7 @@ namespace  pidb
         leveldb::Options options;
         options.create_if_missing = true;
         auto status = leveldb::DB::Open(options,db_path,&db);
+
         if(!status.ok()){
             LOG(ERROR)<<"Fail to open db";
             return Status::Corruption(db_path,"Fail to open db");

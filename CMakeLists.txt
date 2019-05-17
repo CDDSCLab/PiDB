@@ -21,6 +21,7 @@ include(FindProtobuf)
 include_directories(
   "${PROJECT_SOURCE_DIR}"
 )
+
 set(PIDB_PUBLIC_INCLUDE_DIR "include/pidb")
 set(PIDB_SERVER_DIR "src/server")
 if (NOT PROTOBUF_PROTOC_EXECUTABLE)
@@ -28,7 +29,7 @@ if (NOT PROTOBUF_PROTOC_EXECUTABLE)
     set (PROTOBUF_PROTOC_EXECUTABLE "${PROTO_LIB_DIR}/../bin/protoc")
 endif()
 
-protobuf_generate_cpp(PROTO_SRC PROTO_HEADER "${PROJECT_SOURCE_DIR}/demo/pidb.proto")
+protobuf_generate_cpp(PROTO_SRC PROTO_HEADER "${PROJECT_SOURCE_DIR}/src/server/pidb.proto")
 # include PROTO_HEADER
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
@@ -129,7 +130,8 @@ include_directories("${PROJECT_SOURCE_DIR}/src/include")
 include_directories("${PROJECT_SOURCE_DIR}/src/server")
 
 
-add_executable(pidb "${PROJECT_SOURCE_DIR}/src/server/main.cpp")
+add_library(pidb "")
+add_executable(pidb_server src/server/main.cpp)
 target_sources(pidb PRIVATE
 	${PROTO_SRC}
     ${PROTO_HEADER}
@@ -140,12 +142,15 @@ target_sources(pidb PRIVATE
     "${PROJECT_SOURCE_DIR}/src/include/pidb/status.h"
     "${PROJECT_SOURCE_DIR}/src/util/status.cc"
     "${PROJECT_SOURCE_DIR}/src/port/port_stdcxx.h"
+
     "${PROJECT_SOURCE_DIR}/${PIDB_SERVER_DIR}/server.h"
     "${PROJECT_SOURCE_DIR}/${PIDB_SERVER_DIR}/server.cpp"
     "${PROJECT_SOURCE_DIR}/${PIDB_SERVER_DIR}/raftnode.h"
     "${PROJECT_SOURCE_DIR}/${PIDB_SERVER_DIR}/raftnode.cpp"
     "${PROJECT_SOURCE_DIR}/${PIDB_SERVER_DIR}/shareddb.h"
     "${PROJECT_SOURCE_DIR}/${PIDB_SERVER_DIR}/pidb_service_impl.h"
+    "${PROJECT_SOURCE_DIR}/${PIDB_SERVER_DIR}/context.h"
+    "${PROJECT_SOURCE_DIR}/${PIDB_SERVER_DIR}/context.cpp"
     "${PROJECT_SOURCE_DIR}/src/include/pidb/options.h"
     "${PROJECT_SOURCE_DIR}/${PIDB_SERVER_DIR}/pidb_service_impl.cpp"
 )
@@ -177,3 +182,4 @@ target_link_libraries(pidb
                       ${DYNAMIC_LIB}
                       "-Xlinker \"-)\"")
 
+target_link_libraries(pidb_server pidb )
