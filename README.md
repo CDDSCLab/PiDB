@@ -27,3 +27,8 @@ run_server.sh 和 run_client.sh
 3. 注意一些包的依赖，比如我要测试pidb server的一些功能，
 要链接pidb的库文件
 
+# 关于client
+1. client最为和pidb的一个独立的库的存在
+ 所以编译文件和测试都是单独的
+
+
