@@ -1,2 +1,0 @@
-# Hashes of file build rules.
-4d1800591a116b55e6fbe86cc3944ffc pidb.pb.h
