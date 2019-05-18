@@ -16,7 +16,8 @@ namespace  pidb
         //raft 和server共享一个rpc
         option.port = serveroption.port;
         option.group = "1";
-        option.conf="127.0.1.1:8100:0,127.0.1.1:8101:0,127.0.1.1:8102:0";
+//        option.conf="127.0.1.1:8100:0,127.0.1.1:8101:0,127.0.1.1:8102:0";
+        option.conf="127.0.1.1:8100:0";
         auto s = registerRaftNode(option);
         if(!s.ok()){
             LOG(INFO)<<"Fail to add raft node";

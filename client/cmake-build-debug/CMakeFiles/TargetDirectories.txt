@@ -1,0 +1,3 @@
+/home/ehds/Programs/db-project/client/cmake-build-debug/CMakeFiles/rebuild_cache.dir
+/home/ehds/Programs/db-project/client/cmake-build-debug/CMakeFiles/client.dir
+/home/ehds/Programs/db-project/client/cmake-build-debug/CMakeFiles/edit_cache.dir
