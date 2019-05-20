@@ -16,16 +16,21 @@ class RaftNode;
 class ServerClosure: public braft::Closure{
 public:
     ServerClosure(PiDBResponse* response,
-                 google::protobuf::Closure* done):
-             response_(response),
-             done_(done){}
+                 google::protobuf::Closure* done,std::vector<std::string> groups);
+
     ~ServerClosure(){}
     PiDBResponse* response() const {return response_;}
+    void SetDone(const std::string &group);
+    bool IsDone();
+
 
     //Run用于判断batchs的操作是否已经全部完成
     void Run();
+    Status s_;
 private:
     //TODO 更一般化的形式
+    std::mutex mutex_;
+    std::atomic_uint64_t count_;
     std::unordered_map<std::string,bool> batchs;
     PiDBResponse* response_;
     google::protobuf::Closure* done_;
@@ -34,7 +39,6 @@ private:
 class Server{
 public:
     //operation for write
-    enum {kPutOp=0,kDeleteOp = 1};
 
 	explicit Server(const ServerOption &serveroption);
 	//no copy and =

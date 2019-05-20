@@ -1,7 +1,8 @@
 #include <memory>
 #include "raftnode.h"
+#include "server.h"
 #include "pidb/options.h"
-
+#include "leveldb/write_batch.h"
 namespace pidb{
 
 RaftNode::RaftNode(const RaftOption &option,const Range &range)
@@ -49,51 +50,125 @@ void RaftNode::redirect(PiDBResponse *response){
     }
 }
 
+Status RaftNode::do_put_or_del(uint8_t type,const butil::IOBuf& data,braft::Closure *done) {
+    assert(type == kPutOp || type==kDelletOp);
+    PiDBResponse*response = NULL;
+    //This task is applied by this node
+    std::string key,value;
+    if(done){
+        RaftNodeClosure *c = dynamic_cast<RaftNodeClosure *>(done);
+        response = c->response();
+        key = c->request()->key();
+        if(type == kPutOp)
+            value = c->request()->value();
+    }else{
+        butil::IOBufAsZeroCopyInputStream wrapper(data);
+        //put or delete的request
+        PiDBRequest request;
+        CHECK(request.ParseFromZeroCopyStream(&wrapper));
+        key = request.key();
+        if(type == kPutOp)
+            value = request.value();
+    }
+    auto db = db_->db();
+    assert(db!= nullptr);
+    leveldb::Status s;
+    if(type == kPutOp)
+        s = db_->db()->Put(leveldb::WriteOptions(),key,value);
+    else
+        s = db_->db()->Delete(leveldb::WriteOptions(),key);
+    LOG(INFO)<<s.ToString();
+    //fail to put value
+    if(!s.ok()){
+        if(response){
+            response->set_success(false);
+        }
+        //closure_guard.release();
+        // TO-DO which error happened and what should be done.
+        return Status::IOError("DB","Fail to put value into db");
+    }
+
+    if (response) {
+        response->set_success(true);
+    }
+    return Status::OK();
+
+}
+Status RaftNode::do_write(uint8_t type, const butil::IOBuf &data, braft::Closure *done) {
+    braft::AsyncClosureGuard closure_guard(done);
+    assert(type == kWriteOp);
+    leveldb::WriteBatch batch;
+    ServerClosure * s = done?dynamic_cast<ServerClosure *>(done): nullptr;
+
+    PiDBWriteBatch writeBatch;
+    butil::IOBufAsZeroCopyInputStream wrapper(data);
+    CHECK(writeBatch.ParseFromZeroCopyStream(&wrapper));
+    for(int i=0;i<writeBatch.writebatch_size();i++){
+        auto b = writeBatch.writebatch(i);
+        switch (b.op()){
+            case kPutOp:{
+                batch.Put(b.key(),b.value());
+                break;
+            }
+            case kDelletOp:{
+                batch.Delete(b.key());
+                break;
+            }
+            default:
+                LOG(ERROR)<<"Unknown operation";
+                break;
+        }
+    }
+    auto db = db_->db();
+    assert(db!=nullptr);
+    auto status = db->Write(leveldb::WriteOptions(),&batch);
+    // TODO 这里涉及多个raft的操作,存在并发等问题
+    if(status.ok()){
+        if(done) {
+            s->SetDone(group_);
+            s->s_ = Status::OK();
+            if(!s->IsDone())
+                closure_guard.release();
+        }
+    } else{
+        s->s_= Status::Corruption("raft","Fail to Write");
+    }
+
+}
+
 void RaftNode::on_apply(braft::Iterator& iter){
 //TO-DO
    for (; iter.valid(); iter.next()) {
             PiDBResponse* response = NULL;
-
             // This guard helps invoke iter.done()->Run() asynchronously to
             // avoid that callback blocks the StateMachine
             braft::AsyncClosureGuard closure_guard(iter.done());
-            butil::IOBuf data;
-            std::string key,value;
-            if (iter.done()) {
-                // This task is applied by this node, get value from this
-                // closure to avoid additional parsing.
-                RaftNodeClosure* c = dynamic_cast<RaftNodeClosure*>(iter.done());
-                //data.swap(*(c->data()));
-                response = c->response();
-                key = c->request()->key();
-                value = c->request()->value();
-            } else {
-                butil::IOBufAsZeroCopyInputStream wrapper(iter.data());
-                PiDBRequest request;
-                CHECK(request.ParseFromZeroCopyStream(&wrapper));
-                key = request.key();
-                value = request.value();
+            butil::IOBuf data = iter.data();
+
+            uint8_t type = kUnknownOp;
+            data.cutn(&type, sizeof(uint8_t));
+            switch (type){
+                case kDelletOp:
+                case kPutOp:
+                    {
+                    auto s = do_put_or_del(type, data, iter.done());
+                    if (!s.ok())
+                        LOG(ERROR) << "Fail to apply put operation" << s.ToString();
+                    break;
+                    }
+                case kWriteOp:{
+                    closure_guard.release();
+                    auto s = do_write(type, data,iter.done());
+                    if (!s.ok())
+                        LOG(ERROR) << "Fail to apply put operation" << s.ToString();
+                    break;
+                }
+                default:
+                    LOG(ERROR)<<"Unknown operation typpe";
+                    break;
             }
+   }
 
-            assert(db_->db()!=nullptr);
-
-            leveldb::Status s = db_->db()->Put(leveldb::WriteOptions(),key,value);
-            LOG(INFO)<<s.ToString();
-            //fail to put value
-            if(!s.ok()){
-            	if(response){
-            		response->set_success(false);
-            	}
-            	//closure_guard.release();
-            	// TO-DO which error happened and what should be done.
-           		return;
-            }
-
-            if (response) {
-                response->set_success(true);
-            }
-
-        }
 }
 
 void* RaftNode::save_snapshot(void* arg){
@@ -179,7 +254,8 @@ void RaftNode::Put(const PiDBRequest *request,PiDBResponse* response,
     if(term<0){
             redirect(response);
     }
-      butil::IOBuf log;
+        butil::IOBuf log;
+        log.push_back((uint8_t)kPutOp);
         butil::IOBufAsZeroCopyOutputStream wrapper(&log);
         if (!request->SerializeToZeroCopyStream(&wrapper)) {
             LOG(ERROR) << "Fail to serialize request";
@@ -187,32 +263,42 @@ void RaftNode::Put(const PiDBRequest *request,PiDBResponse* response,
         }
 
         // Apply this log as a braft::Task
+
         braft::Task task;
         task.data = &log;
         // This callback would be iovoked when the task actually excuted or
         // fail
         task.done = new RaftNodeClosure(this, request,response,done_guard.release());
 
-        if (true) {
-            // ABA problem can be avoid if expected_term is set
-            task.expected_term = term;
-        }
+        // ABA problem can be avoid if expected_term is set
+        task.expected_term = term;
+
         // Now the task is applied to the group, waiting for the result.
         return node_->apply(task);
 }
 
 //Write 操作
-void RaftNode::Write(const leveldb::WriteOptions &options, std::unique_ptr<PiDBWriteBatch> batchs,
-                    google::protobuf::Closure *done) {
+void RaftNode::Write(const leveldb::WriteOptions &options, std::unique_ptr<PiDBWriteBatch> batch,
+                    braft::Closure *done) {
     auto term = leader_term_.load(std::memory_order_relaxed);
     //TODO 分不同的region处理，需要记录
     if(term<0){
         //TODO
     }
     butil::IOBuf log;
+    log.push_back((uint8_t)kWriteOp);
     butil::IOBufAsZeroCopyOutputStream wrapper(&log);
+    if(batch->SerializeToZeroCopyStream(&wrapper)){
+        LOG(ERROR)<<"Fail to seralize batch request";
+        return;
+    }
+    braft::Task task;
+    task.data = &log;
+    task.done = done;
+    task.expected_term = term;
 
-
+    return node_->apply(task);
 
 }
+
 } // namespace pidb

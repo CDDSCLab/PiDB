@@ -134,12 +134,14 @@ namespace  pidb
 
          //遍历write_batch ,分发到不同的region,传给每个region一个writebatch的请求
          //因为需要序列化，所以直接使用PiDBWritebatch
+         std::vector<std::string> groups;
          for(int i = 0;i<request->writebatch_size();i++){
             auto batch = request->writebatch(i);
             //为了测试该region为group1
             //auto group = FindGroup(batch.key());
             auto group = "group1";
             //当前group还没有batch
+            groups.push_back(group);
 
             if(batchs.find(group)==batchs.end()){
                 batchs[group] = std::unique_ptr<PiDBWriteBatch>(new PiDBWriteBatch);
@@ -147,7 +149,7 @@ namespace  pidb
             auto op = batchs[group]->add_writebatch();
             op->set_op(batch.op());
             op->set_key(std::move(batch.key()));
-            if(batch.op()==kPutOp)
+            if(batch.op()==RaftNode::kPutOp)
                 op->set_value(std::move(batch.value()));
 //
 //             switch(batch.op()){
@@ -165,7 +167,7 @@ namespace  pidb
 //                     break;
 //             }// switch
          } // for write_batch
-         ServerClosure * closure = new ServerClosure(response,done_guard.release());
+         ServerClosure * closure = new ServerClosure(response,done_guard.release(),std::move(groups));
          //TODO 异步调用
          for( auto &item:batchs){
              auto node = nodes_[item.first];
@@ -176,7 +178,37 @@ namespace  pidb
              node->Write(leveldb::WriteOptions(),std::move(item.second),closure);
          }
      }
-     void ServerClosure::Run() {
-         return;
+
+     ServerClosure::ServerClosure(pidb::PiDBResponse *response, google::protobuf::Closure *done,
+                                  std::vector<std::string> groups)
+                                  :response_(response),
+                                  done_(done){
+         for(const auto & g:groups){
+             batchs[g] = false;
+         }
+
      }
+     void ServerClosure::SetDone(const std::string &group) {
+            if(batchs.find(group) == batchs.end())
+                return;
+            batchs[group] = true;
+            count_.fetch_add(1,std::memory_order_relaxed);
+
+     }
+     void ServerClosure::Run() {
+         std::unique_ptr<ServerClosure> self_guard(this);
+         brpc::ClosureGuard done_guard(done_);
+         auto res = response();
+         if(!status().ok() || s_.ok() ||!IsDone()){
+
+             res->set_success(false);
+         }else{
+             res->set_success(true);
+         }
+     }
+    bool ServerClosure::IsDone(){
+        auto c = count_.load(std::memory_order_relaxed);
+        return c >= batchs.size();
+     }
+
 } //  pidb

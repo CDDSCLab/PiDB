@@ -18,6 +18,7 @@ class RaftNode;
 struct RaftOption;
 class Status;
 class RaftNodeClosure: public braft::Closure{
+
 public:
 	RaftNodeClosure(RaftNode* node,
             const PiDBRequest *request,
@@ -31,6 +32,7 @@ public:
 	const PiDBRequest* request() const {return request_;}
 	PiDBResponse* response() const {return response_;}
 	void Run();
+
 private:
 	RaftNode* node_;
 	const PiDBRequest* request_;
@@ -51,6 +53,15 @@ using leveldb::Iterator;
 
 class RaftNode : public braft::StateMachine {
 public:
+
+    enum RaftOpType {
+        kUnknownOp = 0,
+        kGetOp     = 1,
+        kPutOp     = 2,
+        kDelletOp  = 3,
+        kWriteOp   = 4
+    };
+
     //RaftNode 的Rnage初始化不用option传入，因为range可能在运行中是经常变化的
     //我认为不要写入option中可能好一点
     //使用option设置node的端口和group(启动之后不会变化)
@@ -65,8 +76,8 @@ public:
     virtual void Put(const PiDBRequest *request,PiDBResponse* response,
             ::google::protobuf::Closure* done);
 
-    virtual void Write(const leveldb::WriteOptions& options,std::unique_ptr<PiDBWriteBatch> batchs,
-            ::google::protobuf::Closure *done);
+    virtual void Write(const leveldb::WriteOptions& options,std::unique_ptr<PiDBWriteBatch> batch,
+           braft::Closure *done);
 
     /*待实现
     virtual Status Write(const PiDBRequest *request,PiDBResponse* response,
@@ -87,6 +98,10 @@ public:
     void on_configuration_committed(const ::braft::Configuration& conf) override ;
     void on_stop_following(const ::braft::LeaderChangeContext& ctx) override;
     void on_start_following(const ::braft::LeaderChangeContext& ctx) override;
+
+    Status do_put_or_del(uint8_t type,const butil::IOBuf& data, braft::Closure *done);
+    Status do_write(uint8_t type,const butil::IOBuf& data,braft::Closure *done);
+
     Status SetRange(const Slice &s,const Slice &l){
         //TO-DO 判断s和l是否合法，例如s<=l 等等
         range_ = Range(s,l);
