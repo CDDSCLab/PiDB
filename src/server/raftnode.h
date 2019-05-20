@@ -62,8 +62,12 @@ public:
 
     virtual Status Get(const PiDBRequest *request,PiDBResponse* response,
             ::google::protobuf::Closure* done) const;
-    virtual Status Put(const PiDBRequest *request,PiDBResponse* response,
+    virtual void Put(const PiDBRequest *request,PiDBResponse* response,
             ::google::protobuf::Closure* done);
+
+    virtual void Write(const leveldb::WriteOptions& options,leveldb::WriteBatch* batchs,
+            ::google::protobuf::Closure *done);
+
     /*待实现
     virtual Status Write(const PiDBRequest *request,PiDBResponse* response,
             ::google::protobuf::Closure* done);
@@ -93,7 +97,12 @@ public:
         BAIDU_SCOPED_LOCK(_db_mutex);
         return db_;
     }
+    void SetDB(scoped_db db){
+        //也可以使用std::lock_guard
+        BAIDU_SCOPED_LOCK(_db_mutex);
+        db_ = db;
 
+    }
     bool IsLeader() const{
         return learder_term_.load(std::memory_order_acquire) >0;
     }
@@ -121,7 +130,7 @@ private:
     const int32_t port_;
     const std::string conf_;
 
-    std::atomic<int64_t> learder_term_;
+    std::atomic<int64_t> leader_term_;
 
     struct SnapshotHandle{
         scoped_db db;

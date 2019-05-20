@@ -3,6 +3,7 @@
 #define PIDB_SERVER_H
 #include <map>
 #include <memory>
+#include <unordered_map>
 #include <brpc/server.h>  //srever
 #include "shareddb.h"
 #include "pidb/status.h"
@@ -11,8 +12,30 @@
 
 namespace pidb{
 class RaftNode;
+
+class ServerClosure: public google::protobuf::Closure{
+public:
+    ServerClosure(PiDBResponse* response,
+                 google::protobuf::Closure* done):
+             response_(response),
+             done_(done){}
+    ~ServerClosure(){}
+    PiDBResponse* response() const {return response_;}
+
+    //Run用于判断batchs的操作是否已经全部完成
+    void Run();
+private:
+    //TODO 更一般化的形式
+    std::unordered_map<std::string,bool> batchs;
+    PiDBResponse* response_;
+    google::protobuf::Closure* done_;
+};
+
 class Server{
 public:
+    //operation for write
+    enum {kPutOp=0,kDeleteOp = 1};
+
 	explicit Server(const ServerOption &serveroption);
 	//no copy and =
 	Server(const Server&) = delete;
@@ -29,14 +52,17 @@ public:
 	Status removeRaftNode(const RaftOption &option);
 
 	//暂时实现两个
-	Status Put(const ::pidb::PiDBRequest* request,
+	void Put(const ::pidb::PiDBRequest* request,
                        ::pidb::PiDBResponse* response,
                        ::google::protobuf::Closure* done);
 
-	Status Read(const ::pidb::PiDBRequest* request,
+	Status Get(const ::pidb::PiDBRequest* request,
                        ::pidb::PiDBResponse* response,
                        ::google::protobuf::Closure* done);
 
+    void Write(const ::pidb::PiDBWriteBatch* request,
+                   ::pidb::PiDBResponse* response,
+                   ::google::protobuf::Closure* done);
 	void Recover();
 	void DestroyServer();
 

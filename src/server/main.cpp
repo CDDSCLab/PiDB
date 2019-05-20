@@ -15,8 +15,9 @@ int main(int argc,char *argv[]){
 
     //初始化server
     brpc::Server server;
-    pidb::Server s({FLAGS_data_path,FLAGS_port});
-    pidb::PiDBServiceImpl service(&s);
+    pidb::ServerOption options(FLAGS_data_path,FLAGS_port);
+    auto s = new pidb::Server(options);
+    pidb::PiDBServiceImpl service(s);
     //增加Node Server的服务
     if (server.AddService(&service,
                           brpc::SERVER_DOESNT_OWN_SERVICE) != 0) {
@@ -35,7 +36,7 @@ int main(int argc,char *argv[]){
         return -1;
     }
     //启动Node server
-    s.Start();
+    s->Start();
     //等待用户结束
     while (!brpc::IsAskedToQuit()){
         sleep(1);

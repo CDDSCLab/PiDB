@@ -43,42 +43,52 @@ int main(int argc, char* argv[]) {
     int log_id = 0;
    // while (!brpc::IsAskedToQuit()) {
 
-        pidb::PiDBWriteBatch batch;
+          brpc::Controller cntl;
         pidb::PiDBResponse response;
-        pidb::PiDBOperator *oper;
-        brpc::Controller cntl;
+//        pidb::PiDBWriteBatch batch;
+//        pidb::PiDBOperator *oper;
 
-        oper = batch.add_writebatch();
-        //设置一个batch的操作 put key1->value1
-        oper->set_op(1);
-        oper->set_key("key1");
-        oper->set_value("value1");
+//
+//        oper = batch.add_writebatch();
+//        //设置一个batch的操作 put key1->value1
+//        oper->set_op(1);
+//        oper->set_key("key1");
+//        oper->set_value("value1");
+//
+//        oper=batch.add_writebatch();
+//        oper->set_op(2);
+//        oper->set_key("key1");
+//        //oper->set_value("value2"); //删除操作不需要设置alue
+//
+//        cntl.set_log_id(log_id ++);  // set by user
+//        // Set attachment which is wired to network directly instead of
+//        // being serialized into protobuf messages.
+//        cntl.request_attachment().append(FLAGS_attachment);
+//
+//        // Because `done'(last parameter) is NULL, this function waits until
+//        // the response comes back or error occurs(including timedout).
+//
+//        stub.Write(&cntl, &batch, &response, NULL);
+//        if (!cntl.Failed()) {
+//            LOG(INFO) << "Received response from " << cntl.remote_side()
+//                      << " to " << cntl.local_side()
+//                      << ": " << response.success() << " (attached="
+//                      << cntl.response_attachment() << ")"
+//                      << " latency=" << cntl.latency_us() << "us";
+//        } else {
+//            LOG(WARNING) << cntl.ErrorText();
+//        }
+//        usleep(FLAGS_interval_ms * 1000L);
+//  //  }
+//            cntl.Reset();
+            pidb::PiDBRequest request;
 
-        oper=batch.add_writebatch();
-        oper->set_op(2);
-        oper->set_key("key1");
-        //oper->set_value("value2"); //删除操作不需要设置alue
-
-        cntl.set_log_id(log_id ++);  // set by user
-        // Set attachment which is wired to network directly instead of
-        // being serialized into protobuf messages.
-        cntl.request_attachment().append(FLAGS_attachment);
-
-        // Because `done'(last parameter) is NULL, this function waits until
-        // the response comes back or error occurs(including timedout).
-
-        stub.Write(&cntl, &batch, &response, NULL);
-        if (!cntl.Failed()) {
-            LOG(INFO) << "Received response from " << cntl.remote_side()
-                      << " to " << cntl.local_side()
-                      << ": " << response.success() << " (attached="
-                      << cntl.response_attachment() << ")"
-                      << " latency=" << cntl.latency_us() << "us";
-        } else {
-            LOG(WARNING) << cntl.ErrorText();
-        }
-        usleep(FLAGS_interval_ms * 1000L);
-  //  }
+            request.set_key("name");
+            request.set_value("value");
+            stub.Get(&cntl,&request,&response,NULL);
+            if(!cntl.Failed()){
+                LOG(INFO)<<response.new_value();
+            }
 //
     LOG(INFO) << "EchoClient is going to quit";
     return 0;

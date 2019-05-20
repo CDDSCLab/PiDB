@@ -2,6 +2,7 @@
 #include "server.h"
 #include <sstream>
 #include <leveldb/db.h>   //leveldb
+#include <leveldb/write_batch.h>
 #include "raftnode.h"
 
 namespace  pidb
@@ -32,6 +33,7 @@ namespace  pidb
         }
         Range range("","");
         auto raftnode = std::make_shared<RaftNode>(option,range);
+        //raftnode->SetDB(db_);
         nodes_[option.group]=raftnode;
         //判断一下是否当前map里面没有同样id的raft
         return Status::OK();
@@ -58,6 +60,8 @@ namespace  pidb
 
 
         for(auto const n:nodes_){
+            //在启动前设置共享的db,而不是在初始化的时候
+            n.second->SetDB(db_);
             if(!n.second->start().ok()){
                 LOG(ERROR)<<"Fail to start"<<n.first<<"node";
                 //TO-DO 是否记录失败信息，重试？
@@ -82,26 +86,27 @@ namespace  pidb
     }
 
 
-    Status Server::Put(const ::pidb::PiDBRequest* request,
+    void Server::Put(const ::pidb::PiDBRequest* request,
                        ::pidb::PiDBResponse* response,
                        ::google::protobuf::Closure* done){
         //put 操作需要更新到raft上，
         //选择正确的node，更新
         //TO-DO使用路由表去查找
         auto key = request->key();
-        //TO-DO auto node = SelectNodde(key)
+        LOG(INFO)<<key;
+
+        //TODO auto node = SelectNodde(key) 并判断是否合法
         auto node = nodes_.begin();
+
+        //为了测试取第一个
+        assert(node!=nodes_.end());
+
         //TO-DO 异步的方式
-        auto s = node->second->Put(request,response,done);
-        if(!s.ok()){
-            LOG(ERROR)<<"Fail to put key into db";
-            return Status::Corruption(key,"Fail to put key into db");
-        }
-        return Status::OK();
+        node->second.get()->Put(request,response,done);
         
     }
 
-    Status Server::Read(const ::pidb::PiDBRequest* request,
+    Status Server::Get(const ::pidb::PiDBRequest* request,
                        ::pidb::PiDBResponse* response,
                        ::google::protobuf::Closure* done){
         //因为是共享db，所以直接得到结果
@@ -117,4 +122,48 @@ namespace  pidb
         return Status::OK();
 
     }
+
+    void Server::Write(const ::pidb::PiDBWriteBatch *request,
+                       ::pidb::PiDBResponse *response,
+                       ::google::protobuf::Closure *done) {
+         //根据batch 的内容进行转发到不同的region上面写
+         assert(request->writebatch_size()>0);
+         std::unordered_map<std::string,std::unique_ptr<leveldb::WriteBatch>> batchs;
+
+         //遍历write_batch ,分发到不同的region
+         for(int i = 0;i<request->writebatch_size();i++){
+             auto batch = request->writebatch(i);
+             //为了测试该region为group1
+             //auto group = FindGroup(batch.key());
+             auto group = "group1";
+             //当前group还没有batch
+             if(batchs.find(group)==batchs.end()){
+                 batchs[group] = std::unique_ptr<leveldb::WriteBatch>(new leveldb::WriteBatch());
+             }
+
+             switch(batch.op()){
+                 case kPutOp:
+                     //TODO 获得key值,找到region 的id,并放入其batch中
+                     batchs[group]->Put(batch.key(), batch.value());
+                     break;
+                 case kDeleteOp:
+                     batchs[group]->Delete(batch.key());
+                     break;
+                 //不属于操作范围，直接break,其他的操作不受影响
+                 default:
+                     LOG(INFO)<<"Write batch unknown operation";
+                     break;
+             }// switch
+         } // for write_batch
+
+         //TODO 异步调用
+         for(const auto &items:batchs){
+             auto node = nodes_[items.first];
+             assert(node!=nullptr);
+             //因为write 操作可能涉及多个rfat的操作,所以不能直接将response交给raft执行，需要
+             //server端 收集所有涉及操作的region的信息。
+             //TODO 可否采用并发执行，不考虑其执行顺序？
+             node->Write(leveldb::WriteOptions(),items.second.get());
+         }
+     }
 } //  pidb

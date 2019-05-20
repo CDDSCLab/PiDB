@@ -62,7 +62,7 @@ namespace pidb {
         //放如一个对象，并且返回一个全局id
         uint64_t Put(std::unique_ptr<T> context);
         //通过全局ID获得对象
-        std::shared_ptr<T> Get(int64_t context_id);
+        std::shared_ptr<T> Get(int64_t context_id) const;
         //从缓存中删除这个对象
         virtual int Erase(int64_t context_id);
         //清空缓存
@@ -77,6 +77,9 @@ namespace pidb {
 
     template <typename T>
     uint64_t ContextCache<T>::Put(std::unique_ptr<T> context) {
+        //TODO 测试多线程一致性, s是否是当前+1后的值
+        //https://stackoverflow.com/questions/56185373/how-to-guarantee-data-dependence-with-atomic
+
         auto s = std::shared_ptr<T>(reinterpret_cast<T*>(context.release()));
         auto res = context_id_.fetch_add(1,std::memory_order_relaxed);
         map_[res]=s;
@@ -84,7 +87,7 @@ namespace pidb {
     }
 
     template <typename T>
-    std::shared_ptr<T> ContextCache<T>::Get(int64_t context_id) {
+    std::shared_ptr<T> ContextCache<T>::Get(int64_t context_id)const {
         if(map_.find(context_id) == map_.end()){
             return nullptr;
         }

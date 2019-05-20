@@ -17,7 +17,7 @@ namespace pidb {
         auto cntl = static_cast<brpc::Controller *>(controller);
         brpc::ClosureGuard done_guard(done);
         LOG(INFO)<<"Get";
-        //server_->Read(request, response, done);
+        server_->Get(request, response, done);
     }
     void PiDBServiceImpl::Write(::google::protobuf::RpcController *controller,
                                 const ::pidb::PiDBWriteBatch *request,
@@ -28,10 +28,12 @@ namespace pidb {
         //应该使用dynamic_cast
         auto cntl = static_cast<brpc::Controller *>(controller);
         auto req = request;
-        LOG(INFO)<<req->writebatch_size();
-        for(const auto batch:req->writebatch()){
-            LOG(INFO)<<batch.key();
+        auto batch_size = req->writebatch_size();
+        if(batch_size<1){
+            response->set_success(false);
+            return;
         }
+        server_->
 
     }
 }

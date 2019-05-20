@@ -8,7 +8,7 @@ RaftNode::RaftNode(const RaftOption &option,const Range &range)
                     :group_(std::move(option.group))
                     ,port_(option.port)
                     ,conf_(std::move(option.conf))
-                    ,learder_term_(-1){
+                    ,leader_term_(-1){
 
     SetRange(range.start,range.limit);
 
@@ -74,14 +74,17 @@ void RaftNode::on_apply(braft::Iterator& iter){
                 key = request.key();
                 value = request.value();
             }
-            leveldb::Status s = db_->db()->Put(leveldb::WriteOptions(),key,value);
 
+            assert(db_->db()!=nullptr);
+
+            leveldb::Status s = db_->db()->Put(leveldb::WriteOptions(),key,value);
+            LOG(INFO)<<s.ToString();
             //fail to put value
             if(!s.ok()){
             	if(response){
             		response->set_success(false);
             	}
-            	closure_guard.release();
+            	//closure_guard.release();
             	// TO-DO which error happened and what should be done.
            		return;
             }
@@ -117,7 +120,7 @@ int RaftNode::on_snapshot_load(braft::SnapshotReader* reader){
 
 void RaftNode::on_leader_start(int64_t term){
     
-    learder_term_.store(term,std::memory_order_release);
+    leader_term_.store(term,std::memory_order_release);
 }
 void RaftNode::on_shutdown(){
     //TO-DO
@@ -168,20 +171,19 @@ Status RaftNode::Get(const PiDBRequest *request,PiDBResponse* response,
     response->set_success(true);
     return Status::OK();
 }
-Status RaftNode::Put(const PiDBRequest *request,PiDBResponse* response,
+
+void RaftNode::Put(const PiDBRequest *request,PiDBResponse* response,
                google::protobuf::Closure* done){
     brpc::ClosureGuard done_guard(done);
-    const int64_t term = learder_term_.load(std::memory_order_relaxed);
+    const int64_t term = leader_term_.load(std::memory_order_relaxed);
     if(term<0){
             redirect(response);
-            return Status::InvalidArgument("Leader","Not leader");
     }
       butil::IOBuf log;
         butil::IOBufAsZeroCopyOutputStream wrapper(&log);
         if (!request->SerializeToZeroCopyStream(&wrapper)) {
             LOG(ERROR) << "Fail to serialize request";
             response->set_success(false);
-            return Status::Corruption("put","Fail to serialize request");
         }
 
         // Apply this log as a braft::Task
@@ -196,8 +198,21 @@ Status RaftNode::Put(const PiDBRequest *request,PiDBResponse* response,
             task.expected_term = term;
         }
         // Now the task is applied to the group, waiting for the result.
-         node_->apply(task);
-        return Status::OK();
+        return node_->apply(task);
 }
 
+//Write 操作
+void RaftNode::Write(const leveldb::WriteOptions &options, leveldb::WriteBatch *batchs,
+                    google::protobuf::Closure *done) {
+    auto term = leader_term_.load(std::memory_order_relaxed);
+    //TODO 分不同的region处理，需要记录
+    if(term<0){
+        //TODO
+    }
+    butil::IOBuf log;
+    butil::IOBufAsZeroCopyOutputStream wrapper(&log);
+
+
+
+}
 } // namespace pidb
