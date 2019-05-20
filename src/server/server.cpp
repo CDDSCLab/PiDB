@@ -126,44 +126,57 @@ namespace  pidb
     void Server::Write(const ::pidb::PiDBWriteBatch *request,
                        ::pidb::PiDBResponse *response,
                        ::google::protobuf::Closure *done) {
+         brpc::ClosureGuard done_guard(done);
          //根据batch 的内容进行转发到不同的region上面写
          assert(request->writebatch_size()>0);
-         std::unordered_map<std::string,std::unique_ptr<leveldb::WriteBatch>> batchs;
+         //std::unordered_map<std::string,std::unique_ptr<leveldb::WriteBatch>> batchs;
+         std::unordered_map<std::string,std::unique_ptr<PiDBWriteBatch>> batchs;
 
-         //遍历write_batch ,分发到不同的region
+         //遍历write_batch ,分发到不同的region,传给每个region一个writebatch的请求
+         //因为需要序列化，所以直接使用PiDBWritebatch
          for(int i = 0;i<request->writebatch_size();i++){
-             auto batch = request->writebatch(i);
-             //为了测试该region为group1
-             //auto group = FindGroup(batch.key());
-             auto group = "group1";
-             //当前group还没有batch
-             if(batchs.find(group)==batchs.end()){
-                 batchs[group] = std::unique_ptr<leveldb::WriteBatch>(new leveldb::WriteBatch());
-             }
+            auto batch = request->writebatch(i);
+            //为了测试该region为group1
+            //auto group = FindGroup(batch.key());
+            auto group = "group1";
+            //当前group还没有batch
 
-             switch(batch.op()){
-                 case kPutOp:
-                     //TODO 获得key值,找到region 的id,并放入其batch中
-                     batchs[group]->Put(batch.key(), batch.value());
-                     break;
-                 case kDeleteOp:
-                     batchs[group]->Delete(batch.key());
-                     break;
-                 //不属于操作范围，直接break,其他的操作不受影响
-                 default:
-                     LOG(INFO)<<"Write batch unknown operation";
-                     break;
-             }// switch
+            if(batchs.find(group)==batchs.end()){
+                batchs[group] = std::unique_ptr<PiDBWriteBatch>(new PiDBWriteBatch);
+            }
+            auto op = batchs[group]->add_writebatch();
+            op->set_op(batch.op());
+            op->set_key(std::move(batch.key()));
+            if(batch.op()==kPutOp)
+                op->set_value(std::move(batch.value()));
+//
+//             switch(batch.op()){
+//                 case kPutOp:
+//                     //TODO 获得key值,找到region 的id,并放入其batch中
+//
+//                     batchs[group]->set
+//                     break;
+//                 case kDeleteOp:
+//                     batchs[group]->Delete(batch.key());
+//                     break;
+//                 //不属于操作范围，直接break,其他的操作不受影响
+//                 default:
+//                     LOG(INFO)<<"Write batch unknown operation";
+//                     break;
+//             }// switch
          } // for write_batch
-
+         ServerClosure * closure = new ServerClosure(response,done_guard.release());
          //TODO 异步调用
-         for(const auto &items:batchs){
-             auto node = nodes_[items.first];
+         for( auto &item:batchs){
+             auto node = nodes_[item.first];
              assert(node!=nullptr);
              //因为write 操作可能涉及多个rfat的操作,所以不能直接将response交给raft执行，需要
              //server端 收集所有涉及操作的region的信息。
              //TODO 可否采用并发执行，不考虑其执行顺序？
-             node->Write(leveldb::WriteOptions(),items.second.get());
+             node->Write(leveldb::WriteOptions(),std::move(item.second),closure);
          }
+     }
+     void ServerClosure::Run() {
+         return;
      }
 } //  pidb

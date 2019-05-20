@@ -65,7 +65,7 @@ public:
     virtual void Put(const PiDBRequest *request,PiDBResponse* response,
             ::google::protobuf::Closure* done);
 
-    virtual void Write(const leveldb::WriteOptions& options,leveldb::WriteBatch* batchs,
+    virtual void Write(const leveldb::WriteOptions& options,std::unique_ptr<PiDBWriteBatch> batchs,
             ::google::protobuf::Closure *done);
 
     /*待实现
@@ -104,7 +104,7 @@ public:
 
     }
     bool IsLeader() const{
-        return learder_term_.load(std::memory_order_acquire) >0;
+        return leader_term_.load(std::memory_order_acquire) >0;
     }
     void redirect(PiDBResponse * response);
 

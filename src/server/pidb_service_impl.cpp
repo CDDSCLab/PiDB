@@ -33,7 +33,7 @@ namespace pidb {
             response->set_success(false);
             return;
         }
-        server_->
+        return;
 
     }
 }

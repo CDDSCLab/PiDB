@@ -202,7 +202,7 @@ void RaftNode::Put(const PiDBRequest *request,PiDBResponse* response,
 }
 
 //Write 操作
-void RaftNode::Write(const leveldb::WriteOptions &options, leveldb::WriteBatch *batchs,
+void RaftNode::Write(const leveldb::WriteOptions &options, std::unique_ptr<PiDBWriteBatch> batchs,
                     google::protobuf::Closure *done) {
     auto term = leader_term_.load(std::memory_order_relaxed);
     //TODO 分不同的region处理，需要记录

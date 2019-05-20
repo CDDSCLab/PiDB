@@ -13,7 +13,7 @@
 namespace pidb{
 class RaftNode;
 
-class ServerClosure: public google::protobuf::Closure{
+class ServerClosure: public braft::Closure{
 public:
     ServerClosure(PiDBResponse* response,
                  google::protobuf::Closure* done):
