@@ -58,7 +58,7 @@ public:
         kUnknownOp = 0,
         kGetOp     = 1,
         kPutOp     = 2,
-        kDelletOp  = 3,
+        kDeleteOP  = 3,
         kWriteOp   = 4
     };
 

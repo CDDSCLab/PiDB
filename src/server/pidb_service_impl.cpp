@@ -16,7 +16,6 @@ namespace pidb {
                                ::google::protobuf::Closure *done) {
         auto cntl = static_cast<brpc::Controller *>(controller);
         brpc::ClosureGuard done_guard(done);
-        LOG(INFO)<<"Get";
         server_->Get(request, response, done);
     }
     void PiDBServiceImpl::Write(::google::protobuf::RpcController *controller,
@@ -33,7 +32,7 @@ namespace pidb {
             response->set_success(false);
             return;
         }
-        return;
+        return server_->Write(request,response,done);
 
     }
 }

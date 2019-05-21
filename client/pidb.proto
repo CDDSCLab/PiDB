@@ -7,7 +7,7 @@ message PiDBRequest{
 	optional string value = 2;
 }
 message PiDBOperator{
-    required int32 op = 1;   //1:Put 2:Write 3:Delete
+	required int32 op = 1;   //0: unknown 0:Put 1:Delete  2:Write 完善
     required string key=2;
     optional string value = 3;
 }

@@ -16,7 +16,7 @@ namespace  pidb
         auto option = RaftOption();
         //raft 和server共享一个rpc
         option.port = serveroption.port;
-        option.group = "1";
+        option.group = "group1";
 //        option.conf="127.0.1.1:8100:0,127.0.1.1:8101:0,127.0.1.1:8102:0";
         option.conf="127.0.1.1:8100:0";
         auto s = registerRaftNode(option);
@@ -141,42 +141,47 @@ namespace  pidb
             //auto group = FindGroup(batch.key());
             auto group = "group1";
             //当前group还没有batch
-            groups.push_back(group);
-
             if(batchs.find(group)==batchs.end()){
-                batchs[group] = std::unique_ptr<PiDBWriteBatch>(new PiDBWriteBatch);
+                batchs[group] = std::unique_ptr<PiDBWriteBatch>(new PiDBWriteBatch());
+                groups.push_back(group);
             }
+
             auto op = batchs[group]->add_writebatch();
             op->set_op(batch.op());
             op->set_key(std::move(batch.key()));
-            if(batch.op()==RaftNode::kPutOp)
-                op->set_value(std::move(batch.value()));
+            op->set_value(std::move(batch.value()));
+//            if(batch.op()==RaftNode::kPutOp)
+//                op->set_value(std::move(batch.value()));
 //
 //             switch(batch.op()){
-//                 case kPutOp:
+//                 case RaftNode::kPutOp:
 //                     //TODO 获得key值,找到region 的id,并放入其batch中
-//
-//                     batchs[group]->set
+//                     batchs[group]->P
 //                     break;
-//                 case kDeleteOp:
+//                 case RaftNode::kDeleteOP:
 //                     batchs[group]->Delete(batch.key());
 //                     break;
 //                 //不属于操作范围，直接break,其他的操作不受影响
 //                 default:
 //                     LOG(INFO)<<"Write batch unknown operation";
 //                     break;
-//             }// switch
+//            }// switch
          } // for write_batch
+
          ServerClosure * closure = new ServerClosure(response,done_guard.release(),std::move(groups));
          //TODO 异步调用
-         for( auto &item:batchs){
-             auto node = nodes_[item.first];
+         for(auto iter = batchs.begin();iter!=batchs.end();iter++){
+
+             auto node = nodes_.begin();
              assert(node!=nullptr);
              //因为write 操作可能涉及多个rfat的操作,所以不能直接将response交给raft执行，需要
              //server端 收集所有涉及操作的region的信息。
              //TODO 可否采用并发执行，不考虑其执行顺序？
-             node->Write(leveldb::WriteOptions(),std::move(item.second),closure);
+
+             node->second.get()->Write(leveldb::WriteOptions(),std::move(iter->second),closure);
          }
+         response->set_success(true);
+         response->set_success(true);
      }
 
      ServerClosure::ServerClosure(pidb::PiDBResponse *response, google::protobuf::Closure *done,
@@ -191,8 +196,9 @@ namespace  pidb
      void ServerClosure::SetDone(const std::string &group) {
             if(batchs.find(group) == batchs.end())
                 return;
+
             batchs[group] = true;
-            count_.fetch_add(1,std::memory_order_relaxed);
+            count_.fetch_add(1,std::memory_order_release);
 
      }
      void ServerClosure::Run() {
@@ -207,7 +213,7 @@ namespace  pidb
          }
      }
     bool ServerClosure::IsDone(){
-        auto c = count_.load(std::memory_order_relaxed);
+        auto c = count_.load(std::memory_order_acquire);
         return c >= batchs.size();
      }
 

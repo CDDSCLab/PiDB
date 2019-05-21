@@ -51,7 +51,7 @@ void RaftNode::redirect(PiDBResponse *response){
 }
 
 Status RaftNode::do_put_or_del(uint8_t type,const butil::IOBuf& data,braft::Closure *done) {
-    assert(type == kPutOp || type==kDelletOp);
+    assert(type == kPutOp || type==kDeleteOP);
     PiDBResponse*response = NULL;
     //This task is applied by this node
     std::string key,value;
@@ -105,12 +105,13 @@ Status RaftNode::do_write(uint8_t type, const butil::IOBuf &data, braft::Closure
     CHECK(writeBatch.ParseFromZeroCopyStream(&wrapper));
     for(int i=0;i<writeBatch.writebatch_size();i++){
         auto b = writeBatch.writebatch(i);
+
         switch (b.op()){
             case kPutOp:{
                 batch.Put(b.key(),b.value());
                 break;
             }
-            case kDelletOp:{
+            case kDeleteOP:{
                 batch.Delete(b.key());
                 break;
             }
@@ -119,21 +120,25 @@ Status RaftNode::do_write(uint8_t type, const butil::IOBuf &data, braft::Closure
                 break;
         }
     }
+
     auto db = db_->db();
     assert(db!=nullptr);
+
     auto status = db->Write(leveldb::WriteOptions(),&batch);
     // TODO 这里涉及多个raft的操作,存在并发等问题
     if(status.ok()){
         if(done) {
             s->SetDone(group_);
             s->s_ = Status::OK();
-            if(!s->IsDone())
+
+            if(!s->IsDone()) {
                 closure_guard.release();
+            }
         }
     } else{
         s->s_= Status::Corruption("raft","Fail to Write");
     }
-
+    return Status::OK();
 }
 
 void RaftNode::on_apply(braft::Iterator& iter){
@@ -148,7 +153,7 @@ void RaftNode::on_apply(braft::Iterator& iter){
             uint8_t type = kUnknownOp;
             data.cutn(&type, sizeof(uint8_t));
             switch (type){
-                case kDelletOp:
+                case kDeleteOP:
                 case kPutOp:
                     {
                     auto s = do_put_or_del(type, data, iter.done());
@@ -280,6 +285,7 @@ void RaftNode::Put(const PiDBRequest *request,PiDBResponse* response,
 //Write 操作
 void RaftNode::Write(const leveldb::WriteOptions &options, std::unique_ptr<PiDBWriteBatch> batch,
                     braft::Closure *done) {
+
     auto term = leader_term_.load(std::memory_order_relaxed);
     //TODO 分不同的region处理，需要记录
     if(term<0){
@@ -288,7 +294,7 @@ void RaftNode::Write(const leveldb::WriteOptions &options, std::unique_ptr<PiDBW
     butil::IOBuf log;
     log.push_back((uint8_t)kWriteOp);
     butil::IOBufAsZeroCopyOutputStream wrapper(&log);
-    if(batch->SerializeToZeroCopyStream(&wrapper)){
+    if(!batch->SerializeToZeroCopyStream(&wrapper)){
         LOG(ERROR)<<"Fail to seralize batch request";
         return;
     }
@@ -296,7 +302,6 @@ void RaftNode::Write(const leveldb::WriteOptions &options, std::unique_ptr<PiDBW
     task.data = &log;
     task.done = done;
     task.expected_term = term;
-
     return node_->apply(task);
 
 }
