@@ -74,9 +74,9 @@ Status RaftNode::do_put_or_del(uint8_t type,const butil::IOBuf& data,braft::Clos
     assert(db!= nullptr);
     leveldb::Status s;
     if(type == kPutOp)
-        s = db_->db()->Put(leveldb::WriteOptions(),key,value);
+        s = db->Put(leveldb::WriteOptions(),key,value);
     else
-        s = db_->db()->Delete(leveldb::WriteOptions(),key);
+        s = db->Delete(leveldb::WriteOptions(),key);
     LOG(INFO)<<s.ToString();
     //fail to put value
     if(!s.ok()){

@@ -10,16 +10,26 @@ class PiDBServiceImpl:public PiDBService{
     void Get(::google::protobuf::RpcController* controller,
              const ::pidb::PiDBRequest* request,
             ::pidb::PiDBResponse* response,
-            ::google::protobuf::Closure* done);
+            ::google::protobuf::Closure* done) override;
 
     void Put(::google::protobuf::RpcController* controller,
                const ::pidb::PiDBRequest* request,
                ::pidb::PiDBResponse* response,
-               ::google::protobuf::Closure* done);
+               ::google::protobuf::Closure* done) override;
     void Write(::google::protobuf::RpcController* controller,
                  const ::pidb::PiDBWriteBatch* request,
                  ::pidb::PiDBResponse* response,
-                 ::google::protobuf::Closure* done);
+                 ::google::protobuf::Closure* done) override;
+
+    void GetSnapshot(::google::protobuf::RpcController* controller,
+                             const ::pidb::Empty* request,
+                             ::pidb::PiDBSnapshot* response,
+                             ::google::protobuf::Closure* done) override;
+
+    void ReleaseSnapshot(::google::protobuf::RpcController* controller,
+                                 const ::pidb::PiDBSnapshot* request,
+                                 ::pidb::Success* response,
+                                 ::google::protobuf::Closure* done) override;
 
     private:
     Server *server_;

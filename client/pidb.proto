@@ -14,6 +14,9 @@ message PiDBOperator{
 message PiDBWriteBatch{
     repeated PiDBOperator WriteBatch = 1;
 }
+message PiDBSnapshot{
+    required int32 id = 1;  //snapshot id
+}
 
 message PiDBResponse{
 	required bool success = 1;
@@ -21,9 +24,17 @@ message PiDBResponse{
 	optional string new_value = 3;
 	optional string redirect = 4;
 }
+message Empty{}
+
+message Success{
+    required bool success   = 1;
+    optional string message = 2;
+}
 
 service PiDBService {
 	rpc Put(PiDBRequest) returns (PiDBResponse);
 	rpc Get(PiDBRequest) returns (PiDBResponse);
 	rpc Write(PiDBWriteBatch) returns (PiDBResponse);
+	rpc GetSnapshot(Empty) returns (PiDBSnapshot);
+	rpc ReleaseSnapshot(PiDBSnapshot) returns (Success);
 }

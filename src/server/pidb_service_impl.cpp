@@ -18,6 +18,7 @@ namespace pidb {
         brpc::ClosureGuard done_guard(done);
         server_->Get(request, response, done);
     }
+
     void PiDBServiceImpl::Write(::google::protobuf::RpcController *controller,
                                 const ::pidb::PiDBWriteBatch *request,
                                 ::pidb::PiDBResponse *response,
@@ -33,6 +34,33 @@ namespace pidb {
             return;
         }
         return server_->Write(request,response,done);
+
+    }
+
+    void PiDBServiceImpl::GetSnapshot(::google::protobuf::RpcController *controller,
+                                     const ::pidb::Empty *request,
+                                      ::pidb::PiDBSnapshot *response,
+                                      ::google::protobuf::Closure *done){
+        brpc::ClosureGuard done_guard(done);
+
+        auto id =  server_->GetSnapshot();
+        response->set_id(id);
+
+    }
+
+    void PiDBServiceImpl::ReleaseSnapshot(::google::protobuf::RpcController *controller,
+                                          const ::pidb::PiDBSnapshot *request,
+                                          ::pidb::Success *response,
+                                          ::google::protobuf::Closure *done) {
+        brpc::ClosureGuard done_guard(done);
+        auto id = request->id();
+        auto s = server_->ReleaseSnapshot(id);
+        if(s.ok()){
+            response->set_success(true);
+        }else{
+            response->set_success(false);
+            response->set_message(s.ToString());
+        }
 
     }
 }

@@ -39,7 +39,7 @@ namespace protobuf_pidb_2eproto {
 struct TableStruct {
   static const ::google::protobuf::internal::ParseTableField entries[];
   static const ::google::protobuf::internal::AuxillaryParseTableField aux[];
-  static const ::google::protobuf::internal::ParseTable schema[4];
+  static const ::google::protobuf::internal::ParseTable schema[7];
   static const ::google::protobuf::internal::FieldMetadata field_metadata[];
   static const ::google::protobuf::internal::SerializationTable serialization_table[];
   static const ::google::protobuf::uint32 offsets[];
@@ -47,6 +47,9 @@ struct TableStruct {
 void AddDescriptors();
 }  // namespace protobuf_pidb_2eproto
 namespace pidb {
+class Empty;
+class EmptyDefaultTypeInternal;
+extern EmptyDefaultTypeInternal _Empty_default_instance_;
 class PiDBOperator;
 class PiDBOperatorDefaultTypeInternal;
 extern PiDBOperatorDefaultTypeInternal _PiDBOperator_default_instance_;
@@ -56,16 +59,25 @@ extern PiDBRequestDefaultTypeInternal _PiDBRequest_default_instance_;
 class PiDBResponse;
 class PiDBResponseDefaultTypeInternal;
 extern PiDBResponseDefaultTypeInternal _PiDBResponse_default_instance_;
+class PiDBSnapshot;
+class PiDBSnapshotDefaultTypeInternal;
+extern PiDBSnapshotDefaultTypeInternal _PiDBSnapshot_default_instance_;
 class PiDBWriteBatch;
 class PiDBWriteBatchDefaultTypeInternal;
 extern PiDBWriteBatchDefaultTypeInternal _PiDBWriteBatch_default_instance_;
+class Success;
+class SuccessDefaultTypeInternal;
+extern SuccessDefaultTypeInternal _Success_default_instance_;
 }  // namespace pidb
 namespace google {
 namespace protobuf {
+template<> ::pidb::Empty* Arena::CreateMaybeMessage<::pidb::Empty>(Arena*);
 template<> ::pidb::PiDBOperator* Arena::CreateMaybeMessage<::pidb::PiDBOperator>(Arena*);
 template<> ::pidb::PiDBRequest* Arena::CreateMaybeMessage<::pidb::PiDBRequest>(Arena*);
 template<> ::pidb::PiDBResponse* Arena::CreateMaybeMessage<::pidb::PiDBResponse>(Arena*);
+template<> ::pidb::PiDBSnapshot* Arena::CreateMaybeMessage<::pidb::PiDBSnapshot>(Arena*);
 template<> ::pidb::PiDBWriteBatch* Arena::CreateMaybeMessage<::pidb::PiDBWriteBatch>(Arena*);
+template<> ::pidb::Success* Arena::CreateMaybeMessage<::pidb::Success>(Arena*);
 }  // namespace protobuf
 }  // namespace google
 namespace pidb {
@@ -482,6 +494,120 @@ class PiDBWriteBatch : public ::google::protobuf::Message /* @@protoc_insertion_
 };
 // -------------------------------------------------------------------
 
+class PiDBSnapshot : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:pidb.PiDBSnapshot) */ {
+ public:
+  PiDBSnapshot();
+  virtual ~PiDBSnapshot();
+
+  PiDBSnapshot(const PiDBSnapshot& from);
+
+  inline PiDBSnapshot& operator=(const PiDBSnapshot& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  #if LANG_CXX11
+  PiDBSnapshot(PiDBSnapshot&& from) noexcept
+    : PiDBSnapshot() {
+    *this = ::std::move(from);
+  }
+
+  inline PiDBSnapshot& operator=(PiDBSnapshot&& from) noexcept {
+    if (GetArenaNoVirtual() == from.GetArenaNoVirtual()) {
+      if (this != &from) InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+  #endif
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const {
+    return _internal_metadata_.unknown_fields();
+  }
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields() {
+    return _internal_metadata_.mutable_unknown_fields();
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const PiDBSnapshot& default_instance();
+
+  static void InitAsDefaultInstance();  // FOR INTERNAL USE ONLY
+  static inline const PiDBSnapshot* internal_default_instance() {
+    return reinterpret_cast<const PiDBSnapshot*>(
+               &_PiDBSnapshot_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    3;
+
+  void Swap(PiDBSnapshot* other);
+  friend void swap(PiDBSnapshot& a, PiDBSnapshot& b) {
+    a.Swap(&b);
+  }
+
+  // implements Message ----------------------------------------------
+
+  inline PiDBSnapshot* New() const final {
+    return CreateMaybeMessage<PiDBSnapshot>(NULL);
+  }
+
+  PiDBSnapshot* New(::google::protobuf::Arena* arena) const final {
+    return CreateMaybeMessage<PiDBSnapshot>(arena);
+  }
+  void CopyFrom(const ::google::protobuf::Message& from) final;
+  void MergeFrom(const ::google::protobuf::Message& from) final;
+  void CopyFrom(const PiDBSnapshot& from);
+  void MergeFrom(const PiDBSnapshot& from);
+  void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input) final;
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const final;
+  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
+      bool deterministic, ::google::protobuf::uint8* target) const final;
+  int GetCachedSize() const final { return _cached_size_.Get(); }
+
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const final;
+  void InternalSwap(PiDBSnapshot* other);
+  private:
+  inline ::google::protobuf::Arena* GetArenaNoVirtual() const {
+    return NULL;
+  }
+  inline void* MaybeArenaPtr() const {
+    return NULL;
+  }
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // required int32 id = 1;
+  bool has_id() const;
+  void clear_id();
+  static const int kIdFieldNumber = 1;
+  ::google::protobuf::int32 id() const;
+  void set_id(::google::protobuf::int32 value);
+
+  // @@protoc_insertion_point(class_scope:pidb.PiDBSnapshot)
+ private:
+  void set_has_id();
+  void clear_has_id();
+
+  ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
+  ::google::protobuf::internal::HasBits<1> _has_bits_;
+  mutable ::google::protobuf::internal::CachedSize _cached_size_;
+  ::google::protobuf::int32 id_;
+  friend struct ::protobuf_pidb_2eproto::TableStruct;
+};
+// -------------------------------------------------------------------
+
 class PiDBResponse : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:pidb.PiDBResponse) */ {
  public:
   PiDBResponse();
@@ -524,7 +650,7 @@ class PiDBResponse : public ::google::protobuf::Message /* @@protoc_insertion_po
                &_PiDBResponse_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    3;
+    4;
 
   void Swap(PiDBResponse* other);
   friend void swap(PiDBResponse& a, PiDBResponse& b) {
@@ -648,6 +774,242 @@ class PiDBResponse : public ::google::protobuf::Message /* @@protoc_insertion_po
   bool success_;
   friend struct ::protobuf_pidb_2eproto::TableStruct;
 };
+// -------------------------------------------------------------------
+
+class Empty : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:pidb.Empty) */ {
+ public:
+  Empty();
+  virtual ~Empty();
+
+  Empty(const Empty& from);
+
+  inline Empty& operator=(const Empty& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  #if LANG_CXX11
+  Empty(Empty&& from) noexcept
+    : Empty() {
+    *this = ::std::move(from);
+  }
+
+  inline Empty& operator=(Empty&& from) noexcept {
+    if (GetArenaNoVirtual() == from.GetArenaNoVirtual()) {
+      if (this != &from) InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+  #endif
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const {
+    return _internal_metadata_.unknown_fields();
+  }
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields() {
+    return _internal_metadata_.mutable_unknown_fields();
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const Empty& default_instance();
+
+  static void InitAsDefaultInstance();  // FOR INTERNAL USE ONLY
+  static inline const Empty* internal_default_instance() {
+    return reinterpret_cast<const Empty*>(
+               &_Empty_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    5;
+
+  void Swap(Empty* other);
+  friend void swap(Empty& a, Empty& b) {
+    a.Swap(&b);
+  }
+
+  // implements Message ----------------------------------------------
+
+  inline Empty* New() const final {
+    return CreateMaybeMessage<Empty>(NULL);
+  }
+
+  Empty* New(::google::protobuf::Arena* arena) const final {
+    return CreateMaybeMessage<Empty>(arena);
+  }
+  void CopyFrom(const ::google::protobuf::Message& from) final;
+  void MergeFrom(const ::google::protobuf::Message& from) final;
+  void CopyFrom(const Empty& from);
+  void MergeFrom(const Empty& from);
+  void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input) final;
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const final;
+  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
+      bool deterministic, ::google::protobuf::uint8* target) const final;
+  int GetCachedSize() const final { return _cached_size_.Get(); }
+
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const final;
+  void InternalSwap(Empty* other);
+  private:
+  inline ::google::protobuf::Arena* GetArenaNoVirtual() const {
+    return NULL;
+  }
+  inline void* MaybeArenaPtr() const {
+    return NULL;
+  }
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // @@protoc_insertion_point(class_scope:pidb.Empty)
+ private:
+
+  ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
+  ::google::protobuf::internal::HasBits<1> _has_bits_;
+  mutable ::google::protobuf::internal::CachedSize _cached_size_;
+  friend struct ::protobuf_pidb_2eproto::TableStruct;
+};
+// -------------------------------------------------------------------
+
+class Success : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:pidb.Success) */ {
+ public:
+  Success();
+  virtual ~Success();
+
+  Success(const Success& from);
+
+  inline Success& operator=(const Success& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  #if LANG_CXX11
+  Success(Success&& from) noexcept
+    : Success() {
+    *this = ::std::move(from);
+  }
+
+  inline Success& operator=(Success&& from) noexcept {
+    if (GetArenaNoVirtual() == from.GetArenaNoVirtual()) {
+      if (this != &from) InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+  #endif
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const {
+    return _internal_metadata_.unknown_fields();
+  }
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields() {
+    return _internal_metadata_.mutable_unknown_fields();
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const Success& default_instance();
+
+  static void InitAsDefaultInstance();  // FOR INTERNAL USE ONLY
+  static inline const Success* internal_default_instance() {
+    return reinterpret_cast<const Success*>(
+               &_Success_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    6;
+
+  void Swap(Success* other);
+  friend void swap(Success& a, Success& b) {
+    a.Swap(&b);
+  }
+
+  // implements Message ----------------------------------------------
+
+  inline Success* New() const final {
+    return CreateMaybeMessage<Success>(NULL);
+  }
+
+  Success* New(::google::protobuf::Arena* arena) const final {
+    return CreateMaybeMessage<Success>(arena);
+  }
+  void CopyFrom(const ::google::protobuf::Message& from) final;
+  void MergeFrom(const ::google::protobuf::Message& from) final;
+  void CopyFrom(const Success& from);
+  void MergeFrom(const Success& from);
+  void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input) final;
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const final;
+  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
+      bool deterministic, ::google::protobuf::uint8* target) const final;
+  int GetCachedSize() const final { return _cached_size_.Get(); }
+
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const final;
+  void InternalSwap(Success* other);
+  private:
+  inline ::google::protobuf::Arena* GetArenaNoVirtual() const {
+    return NULL;
+  }
+  inline void* MaybeArenaPtr() const {
+    return NULL;
+  }
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // optional string message = 2;
+  bool has_message() const;
+  void clear_message();
+  static const int kMessageFieldNumber = 2;
+  const ::std::string& message() const;
+  void set_message(const ::std::string& value);
+  #if LANG_CXX11
+  void set_message(::std::string&& value);
+  #endif
+  void set_message(const char* value);
+  void set_message(const char* value, size_t size);
+  ::std::string* mutable_message();
+  ::std::string* release_message();
+  void set_allocated_message(::std::string* message);
+
+  // required bool success = 1;
+  bool has_success() const;
+  void clear_success();
+  static const int kSuccessFieldNumber = 1;
+  bool success() const;
+  void set_success(bool value);
+
+  // @@protoc_insertion_point(class_scope:pidb.Success)
+ private:
+  void set_has_success();
+  void clear_has_success();
+  void set_has_message();
+  void clear_has_message();
+
+  ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
+  ::google::protobuf::internal::HasBits<1> _has_bits_;
+  mutable ::google::protobuf::internal::CachedSize _cached_size_;
+  ::google::protobuf::internal::ArenaStringPtr message_;
+  bool success_;
+  friend struct ::protobuf_pidb_2eproto::TableStruct;
+};
 // ===================================================================
 
 class PiDBService_Stub;
@@ -674,6 +1036,14 @@ class PiDBService : public ::google::protobuf::Service {
   virtual void Write(::google::protobuf::RpcController* controller,
                        const ::pidb::PiDBWriteBatch* request,
                        ::pidb::PiDBResponse* response,
+                       ::google::protobuf::Closure* done);
+  virtual void GetSnapshot(::google::protobuf::RpcController* controller,
+                       const ::pidb::Empty* request,
+                       ::pidb::PiDBSnapshot* response,
+                       ::google::protobuf::Closure* done);
+  virtual void ReleaseSnapshot(::google::protobuf::RpcController* controller,
+                       const ::pidb::PiDBSnapshot* request,
+                       ::pidb::Success* response,
                        ::google::protobuf::Closure* done);
 
   // implements Service ----------------------------------------------
@@ -715,6 +1085,14 @@ class PiDBService_Stub : public PiDBService {
   void Write(::google::protobuf::RpcController* controller,
                        const ::pidb::PiDBWriteBatch* request,
                        ::pidb::PiDBResponse* response,
+                       ::google::protobuf::Closure* done);
+  void GetSnapshot(::google::protobuf::RpcController* controller,
+                       const ::pidb::Empty* request,
+                       ::pidb::PiDBSnapshot* response,
+                       ::google::protobuf::Closure* done);
+  void ReleaseSnapshot(::google::protobuf::RpcController* controller,
+                       const ::pidb::PiDBSnapshot* request,
+                       ::pidb::Success* response,
                        ::google::protobuf::Closure* done);
  private:
   ::google::protobuf::RpcChannel* channel_;
@@ -1062,6 +1440,34 @@ PiDBWriteBatch::writebatch() const {
 
 // -------------------------------------------------------------------
 
+// PiDBSnapshot
+
+// required int32 id = 1;
+inline bool PiDBSnapshot::has_id() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+inline void PiDBSnapshot::set_has_id() {
+  _has_bits_[0] |= 0x00000001u;
+}
+inline void PiDBSnapshot::clear_has_id() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline void PiDBSnapshot::clear_id() {
+  id_ = 0;
+  clear_has_id();
+}
+inline ::google::protobuf::int32 PiDBSnapshot::id() const {
+  // @@protoc_insertion_point(field_get:pidb.PiDBSnapshot.id)
+  return id_;
+}
+inline void PiDBSnapshot::set_id(::google::protobuf::int32 value) {
+  set_has_id();
+  id_ = value;
+  // @@protoc_insertion_point(field_set:pidb.PiDBSnapshot.id)
+}
+
+// -------------------------------------------------------------------
+
 // PiDBResponse
 
 // required bool success = 1;
@@ -1286,9 +1692,113 @@ inline void PiDBResponse::set_allocated_redirect(::std::string* redirect) {
   // @@protoc_insertion_point(field_set_allocated:pidb.PiDBResponse.redirect)
 }
 
+// -------------------------------------------------------------------
+
+// Empty
+
+// -------------------------------------------------------------------
+
+// Success
+
+// required bool success = 1;
+inline bool Success::has_success() const {
+  return (_has_bits_[0] & 0x00000002u) != 0;
+}
+inline void Success::set_has_success() {
+  _has_bits_[0] |= 0x00000002u;
+}
+inline void Success::clear_has_success() {
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline void Success::clear_success() {
+  success_ = false;
+  clear_has_success();
+}
+inline bool Success::success() const {
+  // @@protoc_insertion_point(field_get:pidb.Success.success)
+  return success_;
+}
+inline void Success::set_success(bool value) {
+  set_has_success();
+  success_ = value;
+  // @@protoc_insertion_point(field_set:pidb.Success.success)
+}
+
+// optional string message = 2;
+inline bool Success::has_message() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+inline void Success::set_has_message() {
+  _has_bits_[0] |= 0x00000001u;
+}
+inline void Success::clear_has_message() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline void Success::clear_message() {
+  message_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  clear_has_message();
+}
+inline const ::std::string& Success::message() const {
+  // @@protoc_insertion_point(field_get:pidb.Success.message)
+  return message_.GetNoArena();
+}
+inline void Success::set_message(const ::std::string& value) {
+  set_has_message();
+  message_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
+  // @@protoc_insertion_point(field_set:pidb.Success.message)
+}
+#if LANG_CXX11
+inline void Success::set_message(::std::string&& value) {
+  set_has_message();
+  message_.SetNoArena(
+    &::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::move(value));
+  // @@protoc_insertion_point(field_set_rvalue:pidb.Success.message)
+}
+#endif
+inline void Success::set_message(const char* value) {
+  GOOGLE_DCHECK(value != NULL);
+  set_has_message();
+  message_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
+  // @@protoc_insertion_point(field_set_char:pidb.Success.message)
+}
+inline void Success::set_message(const char* value, size_t size) {
+  set_has_message();
+  message_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+      ::std::string(reinterpret_cast<const char*>(value), size));
+  // @@protoc_insertion_point(field_set_pointer:pidb.Success.message)
+}
+inline ::std::string* Success::mutable_message() {
+  set_has_message();
+  // @@protoc_insertion_point(field_mutable:pidb.Success.message)
+  return message_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline ::std::string* Success::release_message() {
+  // @@protoc_insertion_point(field_release:pidb.Success.message)
+  if (!has_message()) {
+    return NULL;
+  }
+  clear_has_message();
+  return message_.ReleaseNonDefaultNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline void Success::set_allocated_message(::std::string* message) {
+  if (message != NULL) {
+    set_has_message();
+  } else {
+    clear_has_message();
+  }
+  message_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), message);
+  // @@protoc_insertion_point(field_set_allocated:pidb.Success.message)
+}
+
 #ifdef __GNUC__
   #pragma GCC diagnostic pop
 #endif  // __GNUC__
+// -------------------------------------------------------------------
+
+// -------------------------------------------------------------------
+
+// -------------------------------------------------------------------
+
 // -------------------------------------------------------------------
 
 // -------------------------------------------------------------------

@@ -7,12 +7,15 @@ message PiDBRequest{
 	optional string value = 2;
 }
 message PiDBOperator{
-    required int32 op = 1;   //0: unknown 1:Put 2:Delete  3:Write 完善
+	required int32 op = 1;   //0: unknown 0:Put 1:Delete  2:Write 完善
     required string key=2;
     optional string value = 3;
 }
 message PiDBWriteBatch{
     repeated PiDBOperator WriteBatch = 1;
+}
+message PiDBSnapshot{
+    required int32 id = 1;  //snapshot id
 }
 
 message PiDBResponse{
@@ -21,9 +24,17 @@ message PiDBResponse{
 	optional string new_value = 3;
 	optional string redirect = 4;
 }
+message Empty{}
+
+message Success{
+    required bool success   = 1;
+    optional string message = 2;
+}
 
 service PiDBService {
 	rpc Put(PiDBRequest) returns (PiDBResponse);
 	rpc Get(PiDBRequest) returns (PiDBResponse);
 	rpc Write(PiDBWriteBatch) returns (PiDBResponse);
+	rpc GetSnapshot(Empty) returns (PiDBSnapshot);
+	rpc ReleaseSnapshot(PiDBSnapshot) returns (Success);
 }

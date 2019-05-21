@@ -5,6 +5,7 @@
 #include <memory>
 #include <unordered_map>
 #include <brpc/server.h>  //srever
+#include "context_cache.h"
 #include "shareddb.h"
 #include "pidb/status.h"
 #include "pidb_service_impl.h"
@@ -22,7 +23,6 @@ public:
     PiDBResponse* response() const {return response_;}
     void SetDone(const std::string &group);
     bool IsDone();
-
 
     //Run用于判断batchs的操作是否已经全部完成
     void Run();
@@ -67,13 +67,20 @@ public:
     void Write(const ::pidb::PiDBWriteBatch* request,
                    ::pidb::PiDBResponse* response,
                    ::google::protobuf::Closure* done);
+
+    int64_t GetSnapshot();
+    Status  ReleaseSnapshot(int64_t id);
+
 	void Recover();
 	void DestroyServer();
 
 	// 给master发送心跳信息
 	void Hearbet();
     ~Server(){}
+
 private:
+    //用于存储用户存储的snapshotContext
+    pidb::ContextCache<pidb::SnapshotContext> snapshots_;
 	int32_t port_;
 	scoped_db db_;
 	//可能需要换一种数据结构,暂时用map代替

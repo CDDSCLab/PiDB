@@ -181,10 +181,39 @@ namespace  pidb
              node->second.get()->Write(leveldb::WriteOptions(),std::move(iter->second),closure);
          }
          response->set_success(true);
-         response->set_success(true);
+     }
+    int64_t Server::GetSnapshot(){
+         scoped_db db = db_;
+         assert(db->db()!= nullptr);
+//         if(db.get()== nullptr)
+//         {
+//             LOG(INFO)<<"DB is not open";
+//             return 0;
+//         }
+        std::unique_ptr<pidb::SnapshotContext> s (new pidb::SnapshotContext (db->db()->GetSnapshot()));
+        auto id = snapshots_.Put(std::move(s));
+        return id;
      }
 
-     ServerClosure::ServerClosure(pidb::PiDBResponse *response, google::protobuf::Closure *done,
+
+     Status Server::ReleaseSnapshot(int64_t id) {
+         auto snapshot = snapshots_.Get(id);
+         //从数据库真实释放snapshot
+         auto db = db_->db();
+         db->ReleaseSnapshot(snapshot.get()->Get());
+         bool success = snapshots_.Erase(id);
+         if(!success){
+             std::ostringstream stream;
+             stream<<"There is not snapshot indiatated at "<<id;
+             return Status::InvalidArgument("Snapshot",stream.str());
+         }
+         return Status::OK();
+
+     }
+
+
+
+    ServerClosure::ServerClosure(pidb::PiDBResponse *response, google::protobuf::Closure *done,
                                   std::vector<std::string> groups)
                                   :response_(response),
                                   done_(done){
@@ -193,15 +222,17 @@ namespace  pidb
          }
 
      }
-     void ServerClosure::SetDone(const std::string &group) {
-            if(batchs.find(group) == batchs.end())
-                return;
 
-            batchs[group] = true;
-            count_.fetch_add(1,std::memory_order_release);
+    void ServerClosure::SetDone(const std::string &group) {
+        if(batchs.find(group) == batchs.end())
+            return;
 
-     }
-     void ServerClosure::Run() {
+        batchs[group] = true;
+        count_.fetch_add(1,std::memory_order_release);
+
+    }
+
+    void ServerClosure::Run() {
          std::unique_ptr<ServerClosure> self_guard(this);
          brpc::ClosureGuard done_guard(done_);
          auto res = response();
@@ -211,7 +242,8 @@ namespace  pidb
          }else{
              res->set_success(true);
          }
-     }
+    }
+
     bool ServerClosure::IsDone(){
         auto c = count_.load(std::memory_order_acquire);
         return c >= batchs.size();

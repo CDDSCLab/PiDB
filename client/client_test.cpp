@@ -6,6 +6,7 @@
 #include <butil/logging.h>
 #include <butil/time.h>
 #include <brpc/channel.h>
+#include <pidb.pb.h>
 #include "pidb.pb.h"
 
 DEFINE_string(attachment, "", "Carry this along with requests");
@@ -43,8 +44,11 @@ int main(int argc, char* argv[]) {
     int log_id = 0;
    // while (!brpc::IsAskedToQuit()) {
 
-          brpc::Controller cntl;
-      pidb::PiDBResponse response;
+        brpc::Controller cntl;
+
+        pidb::PiDBResponse response;
+        /*
+        //-----BATCH OPERATION
         pidb::PiDBWriteBatch batch;
         pidb::PiDBOperator *oper;
 
@@ -81,6 +85,12 @@ int main(int argc, char* argv[]) {
         }
         usleep(FLAGS_interval_ms * 1000L);
   //  }
+
+*/
+
+        //GET OPERATION
+
+        /*
             cntl.Reset();
             pidb::PiDBRequest request;
 
@@ -90,6 +100,27 @@ int main(int argc, char* argv[]) {
             if(!cntl.Failed()){
                 LOG(INFO)<<response.new_value();
             }
+
+            */
+
+        cntl.set_log_id(log_id++);  // set by user
+
+        pidb::PiDBSnapshot snapshot;
+        pidb::Empty empty;
+        stub.GetSnapshot(&cntl,&empty,&snapshot,NULL);
+        if(!cntl.Failed()){
+            LOG(INFO)<<snapshot.id();
+        } else{
+            LOG(ERROR)<<cntl.ErrorText();
+        }
+        cntl.Reset();
+        pidb::Success s;
+        stub.ReleaseSnapshot(&cntl,&snapshot,&s,NULL);
+        if(!cntl.Failed()){
+            LOG(INFO)<<s.success();
+        }else{
+            LOG(INFO)<<cntl.ErrorText();
+        }
 
     LOG(INFO) << "EchoClient is going to quit";
     return 0;
