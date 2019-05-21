@@ -23,6 +23,7 @@ namespace pidb {
         Context &operator=(const Context &) = default;
 
         virtual ~Context() = default;
+
     };
 
 
@@ -48,6 +49,7 @@ namespace pidb {
     private:
         const leveldb::Snapshot* snapshot_;
     };
+
 
 
     //用于缓存类型为T的指针，以ID为name,用完需要调用Erase释放资源

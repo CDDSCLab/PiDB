@@ -31,10 +31,19 @@ message Success{
     optional string message = 2;
 }
 
+//Iterator的相关信息
+message PiDBIterator{
+	required int32 id     = 1;   // Iterator的标识
+ 	optional string start = 2;   // Iterator的起始位置   暂时为 optional
+	optional string stop  = 3;   // Iterator的终点位置
+}
 service PiDBService {
 	rpc Put(PiDBRequest) returns (PiDBResponse);
 	rpc Get(PiDBRequest) returns (PiDBResponse);
 	rpc Write(PiDBWriteBatch) returns (PiDBResponse);
 	rpc GetSnapshot(Empty) returns (PiDBSnapshot);
 	rpc ReleaseSnapshot(PiDBSnapshot) returns (Success);
+	rpc GetIterator(PiDBIterator) returns (PiDBIterator);
+	rpc Iterate (PiDBIterator) returns (PiDBResponse);    //Iterate  暂时默认为只能next
 }
+

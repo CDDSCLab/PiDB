@@ -63,5 +63,17 @@ namespace pidb {
         }
 
     }
+
+    void PiDBServiceImpl::GetIterator(::google::protobuf::RpcController *controller,
+                                      const ::pidb::PiDBIterator *request,
+                                      ::pidb::PiDBIterator *response,
+                                      ::google::protobuf::Closure *done) {
+
+        brpc::ClosureGuard done_guard(done);
+
+
+        response->set_id(-1);
+
+    }
 }
 //TO-DO 加入新的功能。

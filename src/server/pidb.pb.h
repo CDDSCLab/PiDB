@@ -39,7 +39,7 @@ namespace protobuf_pidb_2eproto {
 struct TableStruct {
   static const ::google::protobuf::internal::ParseTableField entries[];
   static const ::google::protobuf::internal::AuxillaryParseTableField aux[];
-  static const ::google::protobuf::internal::ParseTable schema[7];
+  static const ::google::protobuf::internal::ParseTable schema[8];
   static const ::google::protobuf::internal::FieldMetadata field_metadata[];
   static const ::google::protobuf::internal::SerializationTable serialization_table[];
   static const ::google::protobuf::uint32 offsets[];
@@ -50,6 +50,9 @@ namespace pidb {
 class Empty;
 class EmptyDefaultTypeInternal;
 extern EmptyDefaultTypeInternal _Empty_default_instance_;
+class PiDBIterator;
+class PiDBIteratorDefaultTypeInternal;
+extern PiDBIteratorDefaultTypeInternal _PiDBIterator_default_instance_;
 class PiDBOperator;
 class PiDBOperatorDefaultTypeInternal;
 extern PiDBOperatorDefaultTypeInternal _PiDBOperator_default_instance_;
@@ -72,6 +75,7 @@ extern SuccessDefaultTypeInternal _Success_default_instance_;
 namespace google {
 namespace protobuf {
 template<> ::pidb::Empty* Arena::CreateMaybeMessage<::pidb::Empty>(Arena*);
+template<> ::pidb::PiDBIterator* Arena::CreateMaybeMessage<::pidb::PiDBIterator>(Arena*);
 template<> ::pidb::PiDBOperator* Arena::CreateMaybeMessage<::pidb::PiDBOperator>(Arena*);
 template<> ::pidb::PiDBRequest* Arena::CreateMaybeMessage<::pidb::PiDBRequest>(Arena*);
 template<> ::pidb::PiDBResponse* Arena::CreateMaybeMessage<::pidb::PiDBResponse>(Arena*);
@@ -1010,6 +1014,156 @@ class Success : public ::google::protobuf::Message /* @@protoc_insertion_point(c
   bool success_;
   friend struct ::protobuf_pidb_2eproto::TableStruct;
 };
+// -------------------------------------------------------------------
+
+class PiDBIterator : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:pidb.PiDBIterator) */ {
+ public:
+  PiDBIterator();
+  virtual ~PiDBIterator();
+
+  PiDBIterator(const PiDBIterator& from);
+
+  inline PiDBIterator& operator=(const PiDBIterator& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  #if LANG_CXX11
+  PiDBIterator(PiDBIterator&& from) noexcept
+    : PiDBIterator() {
+    *this = ::std::move(from);
+  }
+
+  inline PiDBIterator& operator=(PiDBIterator&& from) noexcept {
+    if (GetArenaNoVirtual() == from.GetArenaNoVirtual()) {
+      if (this != &from) InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+  #endif
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const {
+    return _internal_metadata_.unknown_fields();
+  }
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields() {
+    return _internal_metadata_.mutable_unknown_fields();
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const PiDBIterator& default_instance();
+
+  static void InitAsDefaultInstance();  // FOR INTERNAL USE ONLY
+  static inline const PiDBIterator* internal_default_instance() {
+    return reinterpret_cast<const PiDBIterator*>(
+               &_PiDBIterator_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    7;
+
+  void Swap(PiDBIterator* other);
+  friend void swap(PiDBIterator& a, PiDBIterator& b) {
+    a.Swap(&b);
+  }
+
+  // implements Message ----------------------------------------------
+
+  inline PiDBIterator* New() const final {
+    return CreateMaybeMessage<PiDBIterator>(NULL);
+  }
+
+  PiDBIterator* New(::google::protobuf::Arena* arena) const final {
+    return CreateMaybeMessage<PiDBIterator>(arena);
+  }
+  void CopyFrom(const ::google::protobuf::Message& from) final;
+  void MergeFrom(const ::google::protobuf::Message& from) final;
+  void CopyFrom(const PiDBIterator& from);
+  void MergeFrom(const PiDBIterator& from);
+  void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input) final;
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const final;
+  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
+      bool deterministic, ::google::protobuf::uint8* target) const final;
+  int GetCachedSize() const final { return _cached_size_.Get(); }
+
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const final;
+  void InternalSwap(PiDBIterator* other);
+  private:
+  inline ::google::protobuf::Arena* GetArenaNoVirtual() const {
+    return NULL;
+  }
+  inline void* MaybeArenaPtr() const {
+    return NULL;
+  }
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // optional string start = 2;
+  bool has_start() const;
+  void clear_start();
+  static const int kStartFieldNumber = 2;
+  const ::std::string& start() const;
+  void set_start(const ::std::string& value);
+  #if LANG_CXX11
+  void set_start(::std::string&& value);
+  #endif
+  void set_start(const char* value);
+  void set_start(const char* value, size_t size);
+  ::std::string* mutable_start();
+  ::std::string* release_start();
+  void set_allocated_start(::std::string* start);
+
+  // optional string stop = 3;
+  bool has_stop() const;
+  void clear_stop();
+  static const int kStopFieldNumber = 3;
+  const ::std::string& stop() const;
+  void set_stop(const ::std::string& value);
+  #if LANG_CXX11
+  void set_stop(::std::string&& value);
+  #endif
+  void set_stop(const char* value);
+  void set_stop(const char* value, size_t size);
+  ::std::string* mutable_stop();
+  ::std::string* release_stop();
+  void set_allocated_stop(::std::string* stop);
+
+  // required int32 id = 1;
+  bool has_id() const;
+  void clear_id();
+  static const int kIdFieldNumber = 1;
+  ::google::protobuf::int32 id() const;
+  void set_id(::google::protobuf::int32 value);
+
+  // @@protoc_insertion_point(class_scope:pidb.PiDBIterator)
+ private:
+  void set_has_id();
+  void clear_has_id();
+  void set_has_start();
+  void clear_has_start();
+  void set_has_stop();
+  void clear_has_stop();
+
+  ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
+  ::google::protobuf::internal::HasBits<1> _has_bits_;
+  mutable ::google::protobuf::internal::CachedSize _cached_size_;
+  ::google::protobuf::internal::ArenaStringPtr start_;
+  ::google::protobuf::internal::ArenaStringPtr stop_;
+  ::google::protobuf::int32 id_;
+  friend struct ::protobuf_pidb_2eproto::TableStruct;
+};
 // ===================================================================
 
 class PiDBService_Stub;
@@ -1044,6 +1198,14 @@ class PiDBService : public ::google::protobuf::Service {
   virtual void ReleaseSnapshot(::google::protobuf::RpcController* controller,
                        const ::pidb::PiDBSnapshot* request,
                        ::pidb::Success* response,
+                       ::google::protobuf::Closure* done);
+  virtual void GetIterator(::google::protobuf::RpcController* controller,
+                       const ::pidb::PiDBIterator* request,
+                       ::pidb::PiDBIterator* response,
+                       ::google::protobuf::Closure* done);
+  virtual void Iterate(::google::protobuf::RpcController* controller,
+                       const ::pidb::PiDBIterator* request,
+                       ::pidb::PiDBResponse* response,
                        ::google::protobuf::Closure* done);
 
   // implements Service ----------------------------------------------
@@ -1093,6 +1255,14 @@ class PiDBService_Stub : public PiDBService {
   void ReleaseSnapshot(::google::protobuf::RpcController* controller,
                        const ::pidb::PiDBSnapshot* request,
                        ::pidb::Success* response,
+                       ::google::protobuf::Closure* done);
+  void GetIterator(::google::protobuf::RpcController* controller,
+                       const ::pidb::PiDBIterator* request,
+                       ::pidb::PiDBIterator* response,
+                       ::google::protobuf::Closure* done);
+  void Iterate(::google::protobuf::RpcController* controller,
+                       const ::pidb::PiDBIterator* request,
+                       ::pidb::PiDBResponse* response,
                        ::google::protobuf::Closure* done);
  private:
   ::google::protobuf::RpcChannel* channel_;
@@ -1790,9 +1960,171 @@ inline void Success::set_allocated_message(::std::string* message) {
   // @@protoc_insertion_point(field_set_allocated:pidb.Success.message)
 }
 
+// -------------------------------------------------------------------
+
+// PiDBIterator
+
+// required int32 id = 1;
+inline bool PiDBIterator::has_id() const {
+  return (_has_bits_[0] & 0x00000004u) != 0;
+}
+inline void PiDBIterator::set_has_id() {
+  _has_bits_[0] |= 0x00000004u;
+}
+inline void PiDBIterator::clear_has_id() {
+  _has_bits_[0] &= ~0x00000004u;
+}
+inline void PiDBIterator::clear_id() {
+  id_ = 0;
+  clear_has_id();
+}
+inline ::google::protobuf::int32 PiDBIterator::id() const {
+  // @@protoc_insertion_point(field_get:pidb.PiDBIterator.id)
+  return id_;
+}
+inline void PiDBIterator::set_id(::google::protobuf::int32 value) {
+  set_has_id();
+  id_ = value;
+  // @@protoc_insertion_point(field_set:pidb.PiDBIterator.id)
+}
+
+// optional string start = 2;
+inline bool PiDBIterator::has_start() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+inline void PiDBIterator::set_has_start() {
+  _has_bits_[0] |= 0x00000001u;
+}
+inline void PiDBIterator::clear_has_start() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline void PiDBIterator::clear_start() {
+  start_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  clear_has_start();
+}
+inline const ::std::string& PiDBIterator::start() const {
+  // @@protoc_insertion_point(field_get:pidb.PiDBIterator.start)
+  return start_.GetNoArena();
+}
+inline void PiDBIterator::set_start(const ::std::string& value) {
+  set_has_start();
+  start_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
+  // @@protoc_insertion_point(field_set:pidb.PiDBIterator.start)
+}
+#if LANG_CXX11
+inline void PiDBIterator::set_start(::std::string&& value) {
+  set_has_start();
+  start_.SetNoArena(
+    &::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::move(value));
+  // @@protoc_insertion_point(field_set_rvalue:pidb.PiDBIterator.start)
+}
+#endif
+inline void PiDBIterator::set_start(const char* value) {
+  GOOGLE_DCHECK(value != NULL);
+  set_has_start();
+  start_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
+  // @@protoc_insertion_point(field_set_char:pidb.PiDBIterator.start)
+}
+inline void PiDBIterator::set_start(const char* value, size_t size) {
+  set_has_start();
+  start_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+      ::std::string(reinterpret_cast<const char*>(value), size));
+  // @@protoc_insertion_point(field_set_pointer:pidb.PiDBIterator.start)
+}
+inline ::std::string* PiDBIterator::mutable_start() {
+  set_has_start();
+  // @@protoc_insertion_point(field_mutable:pidb.PiDBIterator.start)
+  return start_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline ::std::string* PiDBIterator::release_start() {
+  // @@protoc_insertion_point(field_release:pidb.PiDBIterator.start)
+  if (!has_start()) {
+    return NULL;
+  }
+  clear_has_start();
+  return start_.ReleaseNonDefaultNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline void PiDBIterator::set_allocated_start(::std::string* start) {
+  if (start != NULL) {
+    set_has_start();
+  } else {
+    clear_has_start();
+  }
+  start_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), start);
+  // @@protoc_insertion_point(field_set_allocated:pidb.PiDBIterator.start)
+}
+
+// optional string stop = 3;
+inline bool PiDBIterator::has_stop() const {
+  return (_has_bits_[0] & 0x00000002u) != 0;
+}
+inline void PiDBIterator::set_has_stop() {
+  _has_bits_[0] |= 0x00000002u;
+}
+inline void PiDBIterator::clear_has_stop() {
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline void PiDBIterator::clear_stop() {
+  stop_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  clear_has_stop();
+}
+inline const ::std::string& PiDBIterator::stop() const {
+  // @@protoc_insertion_point(field_get:pidb.PiDBIterator.stop)
+  return stop_.GetNoArena();
+}
+inline void PiDBIterator::set_stop(const ::std::string& value) {
+  set_has_stop();
+  stop_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
+  // @@protoc_insertion_point(field_set:pidb.PiDBIterator.stop)
+}
+#if LANG_CXX11
+inline void PiDBIterator::set_stop(::std::string&& value) {
+  set_has_stop();
+  stop_.SetNoArena(
+    &::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::move(value));
+  // @@protoc_insertion_point(field_set_rvalue:pidb.PiDBIterator.stop)
+}
+#endif
+inline void PiDBIterator::set_stop(const char* value) {
+  GOOGLE_DCHECK(value != NULL);
+  set_has_stop();
+  stop_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
+  // @@protoc_insertion_point(field_set_char:pidb.PiDBIterator.stop)
+}
+inline void PiDBIterator::set_stop(const char* value, size_t size) {
+  set_has_stop();
+  stop_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+      ::std::string(reinterpret_cast<const char*>(value), size));
+  // @@protoc_insertion_point(field_set_pointer:pidb.PiDBIterator.stop)
+}
+inline ::std::string* PiDBIterator::mutable_stop() {
+  set_has_stop();
+  // @@protoc_insertion_point(field_mutable:pidb.PiDBIterator.stop)
+  return stop_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline ::std::string* PiDBIterator::release_stop() {
+  // @@protoc_insertion_point(field_release:pidb.PiDBIterator.stop)
+  if (!has_stop()) {
+    return NULL;
+  }
+  clear_has_stop();
+  return stop_.ReleaseNonDefaultNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline void PiDBIterator::set_allocated_stop(::std::string* stop) {
+  if (stop != NULL) {
+    set_has_stop();
+  } else {
+    clear_has_stop();
+  }
+  stop_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), stop);
+  // @@protoc_insertion_point(field_set_allocated:pidb.PiDBIterator.stop)
+}
+
 #ifdef __GNUC__
   #pragma GCC diagnostic pop
 #endif  // __GNUC__
+// -------------------------------------------------------------------
+
 // -------------------------------------------------------------------
 
 // -------------------------------------------------------------------

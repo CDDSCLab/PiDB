@@ -18,10 +18,38 @@ DEFINE_int32(timeout_ms, 100, "RPC timeout in milliseconds");
 DEFINE_int32(max_retry, 3, "Max retries(not including the first RPC)");
 DEFINE_int32(interval_ms, 1000, "Milliseconds between consecutive requests");
 
+
+class anaimal{
+public:
+    anaimal(int h):height(h){
+        std::cout<<h<<std::endl;
+    }
+    int getH(){
+        return height;
+    }
+private:
+    int height;
+};
+
+class fish:public anaimal{
+public:
+    fish();
+    ~fish(){}
+};
+
+
+void test(fish *f){
+    f->getH();
+
+}
 int main(int argc, char* argv[]) {
     // Parse gflags. We recommend you to use gflags as well.
     GFLAGS_NS::ParseCommandLineFlags(&argc, &argv, true);
 
+    fish f;
+    int a = 3;
+    auto c = f.getH();
+    test(&f);
     // A Channel represents a communication line to a Server. Notice that
     // Channel is thread-safe and can be shared by all threads in your program.
     brpc::Channel channel;
