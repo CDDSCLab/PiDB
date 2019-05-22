@@ -24,6 +24,14 @@ namespace pidb {
 
         virtual ~Context() = default;
 
+        void SetID(int64_t id)noexcept {
+            id_=id;
+        }
+        int64_t GetID() const{
+            return id_;
+        }
+    private:
+        int64_t id_;
     };
 
 
@@ -33,9 +41,9 @@ namespace pidb {
             snapshot_ = snapshot;
         };
 
-        SnapshotContext(const SnapshotContext &) = default;
+        SnapshotContext(const SnapshotContext &) = delete;
 
-        SnapshotContext &operator=(const SnapshotContext &) = default;
+        SnapshotContext &operator=(const SnapshotContext &) = delete;
 
         ~SnapshotContext() {
             //在这里我们需要释放snapshot,但是snapshot是存储在db里面的snapshotlist
@@ -51,6 +59,25 @@ namespace pidb {
     };
 
 
+    class IteratorContext:public Context{
+    public:
+        IteratorContext(std::unique_ptr<leveldb::Iterator> iterator,const std::string &group)
+        :iterator_(std::move(iterator)),group_(group){};
+
+        IteratorContext(const IteratorContext &) = delete;
+
+        IteratorContext &operator=(const IteratorContext &) = delete;
+        ~IteratorContext(){
+            //shoud we do somthing?
+        }
+    private:
+        std::unique_ptr<leveldb::Iterator> iterator_;
+//        std::string start_;     //当前iterator起始key
+//        std::string end_;       //当前iterator的结束key
+        const std::string group_; //用于标识当前iterator属于哪个group
+
+
+    };
 
     //用于缓存类型为T的指针，以ID为name,用完需要调用Erase释放资源
     template <typename T>
@@ -84,7 +111,7 @@ namespace pidb {
 
     template <typename T>
     uint64_t ContextCache<T>::Put(std::unique_ptr<T> context) {
-        //TODO 测试多线程一致性, s是否是当前+1后的值
+        //TODO 测试多线程一致性, s是否是当前+1前的值
         //https://stackoverflow.com/questions/56185373/how-to-guarantee-data-dependence-with-atomic
 
         auto s = std::shared_ptr<T>(reinterpret_cast<T*>(context.release()));
@@ -106,6 +133,7 @@ namespace pidb {
         if(map_.find(context_id) == map_.end()){
             return 0;
         }
+
         map_.erase(context_id);
         return 0;
     }

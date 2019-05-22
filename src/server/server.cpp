@@ -5,10 +5,9 @@
 #include <leveldb/write_batch.h>
 #include "raftnode.h"
 
-namespace  pidb
-{
-     Server::Server(const ServerOption &serveroption):port_(serveroption.port)
-                    ,data_path_(std::move(serveroption.data_path)){
+namespace pidb {
+    Server::Server(const ServerOption &serveroption) : port_(serveroption.port),
+                                                       data_path_(std::move(serveroption.data_path)) {
         //TO-DO recover from log
         //启动本地的raftnode，如果没有则初始化一个      
         //raft 和 server同属一个端口 
@@ -18,104 +17,104 @@ namespace  pidb
         option.port = serveroption.port;
         option.group = "group1";
 //        option.conf="127.0.1.1:8100:0,127.0.1.1:8101:0,127.0.1.1:8102:0";
-        option.conf="127.0.1.1:8100:0";
+        option.conf = "127.0.1.1:8100:0";
         auto s = registerRaftNode(option);
-        if(!s.ok()){
-            LOG(INFO)<<"Fail to add raft node";
+        if (!s.ok()) {
+            LOG(INFO) << "Fail to add raft node";
         }
     }
 
-    Status Server::registerRaftNode(const RaftOption &option){
-        if(nodes_.find(option.group)!=nodes_.end()) {
+    Status Server::registerRaftNode(const RaftOption &option) {
+        if (nodes_.find(option.group) != nodes_.end()) {
             std::ostringstream s;
             s << "There is alreay existing raftnode in" << option.group;
             return Status::Corruption(option.group, s.str());
         }
-        Range range("","");
-        auto raftnode = std::make_shared<RaftNode>(option,range);
+        Range range("", "");
+        auto raftnode = std::make_shared<RaftNode>(option, range);
         //raftnode->SetDB(db_);
-        nodes_[option.group]=raftnode;
+        nodes_[option.group] = raftnode;
         //判断一下是否当前map里面没有同样id的raft
         return Status::OK();
     }
 
     //打开leveldb
     //加载配置，遍历nodes_里的raft 把他们全部启动起来
-    Status Server::Start(){
+    Status Server::Start() {
 
         //开启leveldb
-        std::string db_path = data_path_+"/database";
+        std::string db_path = data_path_ + "/database";
         leveldb::DB *db;
         leveldb::Options options;
         options.create_if_missing = true;
-        auto status = leveldb::DB::Open(options,db_path,&db);
+        auto status = leveldb::DB::Open(options, db_path, &db);
 
-        if(!status.ok()){
-            LOG(ERROR)<<"Fail to open db";
-            return Status::Corruption(db_path,"Fail to open db");
+        if (!status.ok()) {
+            LOG(ERROR) << "Fail to open db";
+            return Status::Corruption(db_path, "Fail to open db");
         }
         db_ = new SharedDB(db);
 
         //可能存在部分节点启动失败，暂时返回OK
 
 
-        for(auto const n:nodes_){
+        for (auto const n:nodes_) {
             //在启动前设置共享的db,而不是在初始化的时候
             n.second->SetDB(db_);
-            if(!n.second->start().ok()){
-                LOG(ERROR)<<"Fail to start"<<n.first<<"node";
+            if (!n.second->start().ok()) {
+                LOG(ERROR) << "Fail to start" << n.first << "node";
                 //TO-DO 是否记录失败信息，重试？
-                return Status::Corruption(n.first,"Fail to start");
+                return Status::Corruption(n.first, "Fail to start");
             }
         }
         return Status::OK();
     }
 
-    Status Server::Stop(){
-        for(const auto n:nodes_){
+    Status Server::Stop() {
+        for (const auto n:nodes_) {
             //TO-DO 判断节点信息
             n.second->shutdown();
         }
         //server_.Stop(0);
-        for(const auto n:nodes_){
+        for (const auto n:nodes_) {
             n.second->join();
         }
         //server_.Join();
         nodes_.clear();
-    return Status::OK();
+        return Status::OK();
     }
 
 
-    void Server::Put(const ::pidb::PiDBRequest* request,
-                       ::pidb::PiDBResponse* response,
-                       ::google::protobuf::Closure* done){
+    void Server::Put(const ::pidb::PiDBRequest *request,
+                     ::pidb::PiDBResponse *response,
+                     ::google::protobuf::Closure *done) {
         //put 操作需要更新到raft上，
         //选择正确的node，更新
         //TO-DO使用路由表去查找
         auto key = request->key();
-        LOG(INFO)<<key;
+        LOG(INFO) << key;
 
         //TODO auto node = SelectNodde(key) 并判断是否合法
         auto node = nodes_.begin();
 
         //为了测试取第一个
-        assert(node!=nodes_.end());
+        assert(node != nodes_.end());
 
         //TO-DO 异步的方式
-        node->second.get()->Put(request,response,done);
-        
+        node->second.get()->Put(request, response, done);
+
     }
 
-    Status Server::Get(const ::pidb::PiDBRequest* request,
-                       ::pidb::PiDBResponse* response,
-                       ::google::protobuf::Closure* done){
+    Status Server::Get(const ::pidb::PiDBRequest *request,
+                       ::pidb::PiDBResponse *response,
+                       ::google::protobuf::Closure *done) {
         //因为是共享db，所以直接得到结果
         scoped_db db = db_;
         std::string value;
-        auto s = db_->db()->Get(leveldb::ReadOptions(),request->key(),&value);
-        if(!s.ok()){
-            LOG(ERROR)<<"Fail to get key from db";
-            return Status::Corruption(request->key(),"Fail to get key from db");
+        auto s = db_->db()->Get(leveldb::ReadOptions(), request->key(), &value);
+        if (!s.ok()) {
+            LOG(ERROR) << "Fail to get key from db";
+            return Status::Corruption(request->key(), "Fail to get key from db");
         }
         response->set_new_value(std::move(value));
         response->set_success(true);
@@ -126,22 +125,22 @@ namespace  pidb
     void Server::Write(const ::pidb::PiDBWriteBatch *request,
                        ::pidb::PiDBResponse *response,
                        ::google::protobuf::Closure *done) {
-         brpc::ClosureGuard done_guard(done);
-         //根据batch 的内容进行转发到不同的region上面写
-         assert(request->writebatch_size()>0);
-         //std::unordered_map<std::string,std::unique_ptr<leveldb::WriteBatch>> batchs;
-         std::unordered_map<std::string,std::unique_ptr<PiDBWriteBatch>> batchs;
+        brpc::ClosureGuard done_guard(done);
+        //根据batch 的内容进行转发到不同的region上面写
+        assert(request->writebatch_size() > 0);
+        //std::unordered_map<std::string,std::unique_ptr<leveldb::WriteBatch>> batchs;
+        std::unordered_map<std::string, std::unique_ptr<PiDBWriteBatch>> batchs;
 
-         //遍历write_batch ,分发到不同的region,传给每个region一个writebatch的请求
-         //因为需要序列化，所以直接使用PiDBWritebatch
-         std::vector<std::string> groups;
-         for(int i = 0;i<request->writebatch_size();i++){
+        //遍历write_batch ,分发到不同的region,传给每个region一个writebatch的请求
+        //因为需要序列化，所以直接使用PiDBWritebatch
+        std::vector<std::string> groups;
+        for (int i = 0; i < request->writebatch_size(); i++) {
             auto batch = request->writebatch(i);
             //为了测试该region为group1
             //auto group = FindGroup(batch.key());
             auto group = "group1";
             //当前group还没有batch
-            if(batchs.find(group)==batchs.end()){
+            if (batchs.find(group) == batchs.end()) {
                 batchs[group] = std::unique_ptr<PiDBWriteBatch>(new PiDBWriteBatch());
                 groups.push_back(group);
             }
@@ -166,87 +165,118 @@ namespace  pidb
 //                     LOG(INFO)<<"Write batch unknown operation";
 //                     break;
 //            }// switch
-         } // for write_batch
+        } // for write_batch
 
-         ServerClosure * closure = new ServerClosure(response,done_guard.release(),std::move(groups));
-         //TODO 异步调用
-         for(auto iter = batchs.begin();iter!=batchs.end();iter++){
+        ServerClosure *closure = new ServerClosure(response, done_guard.release(), std::move(groups));
+        //TODO 异步调用
+        for (auto iter = batchs.begin(); iter != batchs.end(); iter++) {
 
-             auto node = nodes_.begin();
-             assert(node!=nullptr);
-             //因为write 操作可能涉及多个rfat的操作,所以不能直接将response交给raft执行，需要
-             //server端 收集所有涉及操作的region的信息。
-             //TODO 可否采用并发执行，不考虑其执行顺序？
+            auto node = nodes_.begin();
+            assert(node != nullptr);
+            //因为write 操作可能涉及多个rfat的操作,所以不能直接将response交给raft执行，需要
+            //server端 收集所有涉及操作的region的信息。
+            //TODO 可否采用并发执行，不考虑其执行顺序？
 
-             node->second.get()->Write(leveldb::WriteOptions(),std::move(iter->second),closure);
-         }
-         response->set_success(true);
-     }
-    int64_t Server::GetSnapshot(){
-         scoped_db db = db_;
-         assert(db->db()!= nullptr);
+            node->second.get()->Write(leveldb::WriteOptions(), std::move(iter->second), closure);
+        }
+        response->set_success(true);
+    }
+
+    int64_t Server::GetSnapshot() {
+        scoped_db db = db_;
+        assert(db->db() != nullptr);
 //         if(db.get()== nullptr)
 //         {
 //             LOG(INFO)<<"DB is not open";
 //             return 0;
 //         }
-        std::unique_ptr<pidb::SnapshotContext> s (new pidb::SnapshotContext (db->db()->GetSnapshot()));
+        std::unique_ptr<pidb::SnapshotContext> s(new pidb::SnapshotContext(db->db()->GetSnapshot()));
         auto id = snapshots_.Put(std::move(s));
+
         return id;
-     }
+    }
 
 
-     Status Server::ReleaseSnapshot(int64_t id) {
-         auto snapshot = snapshots_.Get(id);
-         //从数据库真实释放snapshot
-         auto db = db_->db();
-         db->ReleaseSnapshot(snapshot.get()->Get());
-         bool success = snapshots_.Erase(id);
-         if(!success){
-             std::ostringstream stream;
-             stream<<"There is not snapshot indiatated at "<<id;
-             return Status::InvalidArgument("Snapshot",stream.str());
-         }
-         return Status::OK();
+    Status Server::ReleaseSnapshot(int64_t id) {
+        auto snapshot = snapshots_.Get(id);
+        //从数据库真实释放snapshot
+        auto db = db_->db();
+        db->ReleaseSnapshot(snapshot.get()->Get());
+        bool success = snapshots_.Erase(id);
+        if (!success) {
+            std::ostringstream stream;
+            stream << "There is not snapshot indiatated at " << id;
+            return Status::InvalidArgument("Snapshot", stream.str());
+        }
+        return Status::OK();
 
-     }
+    }
 
+    int64_t Server::GetIterator(const std::string &start, const std::string &end) {
+        //不需要使用mutex,因为通过id来保证了iterator唯一，且leveldb的getiterator也保证了并发
+        auto db = db_->db();
+        assert(db != nullptr);
+        //TODO 优化iterator的使用.
+        // 如当前server有多个region不相连,start属于group1,此时iterator属于group1
+        // 当iterator移动到group1且还没到end,需要切换iterator到下一个group,
+        //并且此时需要通知用户当前已经到此region结尾,让用户切换到其他的region（此时的region可能属于其他server）
+        auto it = std::unique_ptr<leveldb::Iterator>(db->NewIterator(leveldb::ReadOptions()));
+        //auto group = selectGroup(start)
+        auto group = "group1";
 
+        it->Seek(start);
+        //是不是需要优化以下阿
+        auto id = iterators_.Put(std::unique_ptr<IteratorContext>(
+                new IteratorContext(std::move(it), group)));
+
+        return id;
+
+    }
+
+    Status Server::ReleaseIterator(int64_t id) {
+        auto it = iterators_.Get(id);
+        if(it == nullptr) {
+            std::ostringstream s;
+            s<<"There is not iterator indiatated at"<<id;
+
+            return Status::InvalidArgument("Iterator", s.str());
+        }
+    }
 
     ServerClosure::ServerClosure(pidb::PiDBResponse *response, google::protobuf::Closure *done,
-                                  std::vector<std::string> groups)
-                                  :response_(response),
-                                  done_(done){
-         for(const auto & g:groups){
-             batchs[g] = false;
-         }
+                                 std::vector<std::string> groups)
+            : response_(response),
+              done_(done) {
+        for (const auto &g:groups) {
+            batchs[g] = false;
+        }
 
-     }
+    }
 
     void ServerClosure::SetDone(const std::string &group) {
-        if(batchs.find(group) == batchs.end())
+        if (batchs.find(group) == batchs.end())
             return;
 
         batchs[group] = true;
-        count_.fetch_add(1,std::memory_order_release);
+        count_.fetch_add(1, std::memory_order_release);
 
     }
 
     void ServerClosure::Run() {
-         std::unique_ptr<ServerClosure> self_guard(this);
-         brpc::ClosureGuard done_guard(done_);
-         auto res = response();
-         if(!status().ok() || s_.ok() ||!IsDone()){
+        std::unique_ptr<ServerClosure> self_guard(this);
+        brpc::ClosureGuard done_guard(done_);
+        auto res = response();
+        if (!status().ok() || s_.ok() || !IsDone()) {
 
-             res->set_success(false);
-         }else{
-             res->set_success(true);
-         }
+            res->set_success(false);
+        } else {
+            res->set_success(true);
+        }
     }
 
-    bool ServerClosure::IsDone(){
+    bool ServerClosure::IsDone() {
         auto c = count_.load(std::memory_order_acquire);
         return c >= batchs.size();
-     }
+    }
 
 } //  pidb

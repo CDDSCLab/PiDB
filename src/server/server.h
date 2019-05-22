@@ -55,21 +55,31 @@ public:
 	Status registerRaftNode(const RaftOption &option);
 	Status removeRaftNode(const RaftOption &option);
 
-	//暂时实现两个
+	//处理Put请求，需要转发到raft节点
 	void Put(const ::pidb::PiDBRequest* request,
                        ::pidb::PiDBResponse* response,
                        ::google::protobuf::Closure* done);
 
+
+    //处理用户的Get请求,server可以直接处理
 	Status Get(const ::pidb::PiDBRequest* request,
                        ::pidb::PiDBResponse* response,
                        ::google::protobuf::Closure* done);
 
-    void Write(const ::pidb::PiDBWriteBatch* request,
+	//处理用户发过来的write的请求
+	void Write(const ::pidb::PiDBWriteBatch* request,
                    ::pidb::PiDBResponse* response,
                    ::google::protobuf::Closure* done);
 
+
+    //Get Snapshot
+    //return unique id 用于标识snapshot的id
     int64_t GetSnapshot();
+    //当使用完snapshot的时候需要释放snapshot
     Status  ReleaseSnapshot(int64_t id);
+
+    int64_t GetIterator(const std::string &start, const std::string &end);
+    Status ReleaseIterator(int64_t id);
 
 	void Recover();
 	void DestroyServer();
@@ -81,6 +91,7 @@ public:
 private:
     //用于存储用户存储的snapshotContext
     pidb::ContextCache<pidb::SnapshotContext> snapshots_;
+    pidb::ContextCache<pidb::IteratorContext> iterators_;
 	int32_t port_;
 	scoped_db db_;
 	//可能需要换一种数据结构,暂时用map代替

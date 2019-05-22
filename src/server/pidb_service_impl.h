@@ -16,6 +16,7 @@ class PiDBServiceImpl:public PiDBService{
                const ::pidb::PiDBRequest* request,
                ::pidb::PiDBResponse* response,
                ::google::protobuf::Closure* done) override;
+
     void Write(::google::protobuf::RpcController* controller,
                  const ::pidb::PiDBWriteBatch* request,
                  ::pidb::PiDBResponse* response,
@@ -32,14 +33,15 @@ class PiDBServiceImpl:public PiDBService{
                          ::google::protobuf::Closure* done) override;
 
     void GetIterator(::google::protobuf::RpcController* controller,
-                             const ::pidb::PiDBIterator* request,
-                             ::pidb::PiDBIterator* response,
-                             ::google::protobuf::Closure* done) override;
+                     const ::pidb::PiDBIterator* request,
+                     ::pidb::PiDBIterator* response,
+                     ::google::protobuf::Closure* done) override;
 
     void Iterate(::google::protobuf::RpcController* controller,
-                         const ::pidb::PiDBIterator* request,
-                         ::pidb::PiDBResponse* response,
-                         ::google::protobuf::Closure* done) override ;
+                 const ::pidb::PiDBIterator* request,
+                 ::pidb::PiDBResponse* response,
+                 ::google::protobuf::Closure* done) override ;
+
     private:
     Server *server_;
 };
