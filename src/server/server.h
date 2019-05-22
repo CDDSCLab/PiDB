@@ -78,8 +78,10 @@ public:
     //当使用完snapshot的时候需要释放snapshot
     Status  ReleaseSnapshot(int64_t id);
 
+
     int64_t GetIterator(const std::string &start, const std::string &end);
     Status ReleaseIterator(int64_t id);
+    Status Next(int64_t id,std::string* value);
 
 	void Recover();
 	void DestroyServer();

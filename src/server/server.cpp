@@ -205,7 +205,7 @@ namespace pidb {
         bool success = snapshots_.Erase(id);
         if (!success) {
             std::ostringstream stream;
-            stream << "There is not snapshot indiatated at " << id;
+            stream << "There is not snapshot indicated at " << id;
             return Status::InvalidArgument("Snapshot", stream.str());
         }
         return Status::OK();
@@ -233,14 +233,36 @@ namespace pidb {
 
     }
 
+    Status Server::Next(int64_t id, std::string *value) {
+        auto it = iterators_.Get(id);
+        if(it == nullptr){
+            std::ostringstream s;
+            s<<"There is not iterator indicated at"<<id;
+            return Status::InvalidArgument("Iterator", s.str());
+        }
+        auto iterator = it->Get();
+        if(iterator->Valid()){
+            *value = iterator->value().ToString();
+            //TODO 判断当前的value是否为当前region的最后
+        }else{
+            return Status::Corruption("Iterate","Iterator is invalid");
+        }
+        iterator->Next();
+        return Status::OK();
+    }
+
     Status Server::ReleaseIterator(int64_t id) {
         auto it = iterators_.Get(id);
         if(it == nullptr) {
             std::ostringstream s;
-            s<<"There is not iterator indiatated at"<<id;
+            s<<"There is not iterator indicated at"<<id;
 
             return Status::InvalidArgument("Iterator", s.str());
         }
+        if(!iterators_.Erase(id)){
+            return Status:: Corruption("Iterator","Fail to erase");
+        }
+        return Status::OK();
     }
 
     ServerClosure::ServerClosure(pidb::PiDBResponse *response, google::protobuf::Closure *done,

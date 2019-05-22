@@ -70,6 +70,9 @@ namespace pidb {
         ~IteratorContext(){
             //shoud we do somthing?
         }
+        leveldb::Iterator * Get() const{
+            return iterator_.get();
+        }
     private:
         std::unique_ptr<leveldb::Iterator> iterator_;
 //        std::string start_;     //当前iterator起始key

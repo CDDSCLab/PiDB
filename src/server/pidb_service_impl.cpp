@@ -70,10 +70,28 @@ namespace pidb {
                                       ::google::protobuf::Closure *done) {
 
         brpc::ClosureGuard done_guard(done);
-
-
-        response->set_id(-1);
+        auto id = server_->GetIterator(request->start(),request->stop());
+        response->set_id(id);
 
     }
+    void PiDBServiceImpl::Iterate(::google::protobuf::RpcController *controller,
+                                const ::pidb::PiDBIterator *request,
+                                  ::pidb::PiDBResponse *response,
+                                  ::google::protobuf::Closure *done) {
+        brpc::ClosureGuard self_guard(done);
+        auto id = request->id();
+        std::string value;
+        LOG(INFO)<<id;
+        auto s = server_->Next(id,&value);
+        if (s.ok()) {
+            response->set_success(true);
+            response->set_new_value(value);
+            LOG(INFO)<<value;
+        }else{
+            LOG(INFO)<<s.ToString();
+            response->set_success(false);
+        }
+    }
+
 }
 //TO-DO 加入新的功能。

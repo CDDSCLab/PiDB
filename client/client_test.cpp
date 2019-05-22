@@ -18,38 +18,10 @@ DEFINE_int32(timeout_ms, 100, "RPC timeout in milliseconds");
 DEFINE_int32(max_retry, 3, "Max retries(not including the first RPC)");
 DEFINE_int32(interval_ms, 1000, "Milliseconds between consecutive requests");
 
-
-class anaimal{
-public:
-    anaimal(int h):height(h){
-        std::cout<<h<<std::endl;
-    }
-    int getH(){
-        return height;
-    }
-private:
-    int height;
-};
-
-class fish:public anaimal{
-public:
-    fish();
-    ~fish(){}
-};
-
-
-void test(fish *f){
-    f->getH();
-
-}
 int main(int argc, char* argv[]) {
     // Parse gflags. We recommend you to use gflags as well.
     GFLAGS_NS::ParseCommandLineFlags(&argc, &argv, true);
 
-    fish f;
-    int a = 3;
-    auto c = f.getH();
-    test(&f);
     // A Channel represents a communication line to a Server. Notice that
     // Channel is thread-safe and can be shared by all threads in your program.
     brpc::Channel channel;
@@ -75,7 +47,7 @@ int main(int argc, char* argv[]) {
         brpc::Controller cntl;
 
         pidb::PiDBResponse response;
-        /*
+
         //-----BATCH OPERATION
         pidb::PiDBWriteBatch batch;
         pidb::PiDBOperator *oper;
@@ -114,7 +86,6 @@ int main(int argc, char* argv[]) {
         usleep(FLAGS_interval_ms * 1000L);
   //  }
 
-*/
 
         //GET OPERATION
 
@@ -132,7 +103,8 @@ int main(int argc, char* argv[]) {
             */
 
         cntl.set_log_id(log_id++);  // set by user
-
+        //Snapshot
+        /*
         pidb::PiDBSnapshot snapshot;
         pidb::Empty empty;
         stub.GetSnapshot(&cntl,&empty,&snapshot,NULL);
@@ -149,6 +121,25 @@ int main(int argc, char* argv[]) {
         }else{
             LOG(INFO)<<cntl.ErrorText();
         }
+         */
+        cntl.Reset();
+        pidb::PiDBIterator iterator;
+        iterator.set_id(-1);
+        iterator.set_start("a");
+        stub.GetIterator(&cntl,&iterator,&iterator,NULL);
+        if(!cntl.Failed()){
+            LOG(INFO)<<iterator.id();
+        }
+    iterator.set_id(iterator.id());
+        cntl.Reset();
+
+     stub.Iterate(&cntl,&iterator, &response,NULL);
+
+    if(!cntl.Failed()){
+        LOG(INFO)<<response.new_value();
+    } else{
+        LOG(INFO)<<cntl.ErrorText();
+    }
 
     LOG(INFO) << "EchoClient is going to quit";
     return 0;
