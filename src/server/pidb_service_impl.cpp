@@ -81,12 +81,10 @@ namespace pidb {
         brpc::ClosureGuard self_guard(done);
         auto id = request->id();
         std::string value;
-        LOG(INFO)<<id;
         auto s = server_->Next(id,&value);
         if (s.ok()) {
             response->set_success(true);
             response->set_new_value(value);
-            LOG(INFO)<<value;
         }else{
             LOG(INFO)<<s.ToString();
             response->set_success(false);

@@ -18,6 +18,7 @@ namespace pidb {
         option.group = "group1";
 //        option.conf="127.0.1.1:8100:0,127.0.1.1:8101:0,127.0.1.1:8102:0";
         option.conf = "127.0.1.1:8100:0";
+        option.data_path = serveroption.data_path+"/group1";
         auto s = registerRaftNode(option);
         if (!s.ok()) {
             LOG(INFO) << "Fail to add raft node";
@@ -30,6 +31,7 @@ namespace pidb {
             s << "There is alreay existing raftnode in" << option.group;
             return Status::Corruption(option.group, s.str());
         }
+
         Range range("", "");
         auto raftnode = std::make_shared<RaftNode>(option, range);
         //raftnode->SetDB(db_);

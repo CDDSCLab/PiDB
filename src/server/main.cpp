@@ -11,8 +11,10 @@ DEFINE_int32(port,8100,"port of server to listen on");
 int main(int argc,char *argv[]){
     GFLAGS_NS::ParseCommandLineFlags(&argc,&argv,true);
     butil::AtExitManager exit_manager;
-
-
+    //创建文件夹
+    if(!butil::DirectoryExists(butil::FilePath("./data"))){
+        butil::CreateDirectory(butil::FilePath("./data"));
+    }
     //初始化server
     brpc::Server server;
     pidb::ServerOption options(FLAGS_data_path,FLAGS_port);

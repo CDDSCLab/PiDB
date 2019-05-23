@@ -5,7 +5,7 @@ option(EXAMPLE_LINK_SO "Whether examples are linked dynamically" ON)
 option(LINK_TCMALLOC "Link tcmalloc if possible" ON)
 
 # execute_process(
-#    COMMAND bash -c "find ${CMAKE_SOURCE_DIR}/../.. -type d -path \"*output/include/braft\" | xargs dirname | xargs dirname | tr -d '\n'"
+#    COMMAND bash -c "find /usr/local/ -type d -path \"*include/levledb\" | xargs dirname | xargs dirname | tr -d '\n'"
 #    OUTPUT_VARIABLE OUTPUT_PATH
 #)
 

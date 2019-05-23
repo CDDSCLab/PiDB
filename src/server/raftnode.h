@@ -44,6 +44,7 @@ struct Range{
     Slice start;
     Slice limit;
     Range(){}
+
     Range(const Slice& s,const Slice& l):start(s),limit(l){}
 };
 
@@ -99,6 +100,8 @@ public:
     void on_stop_following(const ::braft::LeaderChangeContext& ctx) override;
     void on_start_following(const ::braft::LeaderChangeContext& ctx) override;
 
+    bool is_leader() const{ return leader_term_.load(std::memory_order_acquire)>0;}
+
     Status do_put_or_del(uint8_t type,const butil::IOBuf& data, braft::Closure *done);
     Status do_write(uint8_t type,const butil::IOBuf& data,braft::Closure *done);
 
@@ -132,6 +135,7 @@ public:
     }
 
     static void *save_snapshot(void* arg);
+    static int link_overwrite(const char* old_path, const char* new_path);
 private:
     friend class RaftNodeClosure;
     mutable butil::Mutex _db_mutex;
@@ -142,15 +146,22 @@ private:
 
     //暂时用string 代表group,暂时让他们不可更改
     const std::string group_;
+    //当前region的端口号
     const int32_t port_;
+    //当前region的集群信息
     const std::string conf_;
-
+    const std::string data_path_;
+    //当前的任期号
     std::atomic<int64_t> leader_term_;
 
+    //用于存储当前region的snapshot 的handle
     struct SnapshotHandle{
         scoped_db db;
         braft::SnapshotWriter* writer;
         braft::Closure* done;
+        Range * range;
+        std::string data_path;
+
     };
 
 };

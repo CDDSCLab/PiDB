@@ -14,8 +14,9 @@ namespace pidb {
     {
         std::string group;
         std::string conf;
+        std::string data_path;
         int32_t port;
-        RaftOption(){}
+        RaftOption():data_path("./data"){}
 
     };
 

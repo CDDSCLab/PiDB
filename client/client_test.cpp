@@ -6,6 +6,7 @@
 #include <butil/logging.h>
 #include <butil/time.h>
 #include <brpc/channel.h>
+#include <butil/file_util.h>
 #include <pidb.pb.h>
 #include "pidb.pb.h"
 
@@ -22,7 +23,8 @@ int main(int argc, char* argv[]) {
     // Parse gflags. We recommend you to use gflags as well.
     GFLAGS_NS::ParseCommandLineFlags(&argc, &argv, true);
 
-    // A Channel represents a communication line to a Server. Notice that
+    butil::CreateDirectory(butil::FilePath("./data"));
+        // A Channel represents a communication line to a Server. Notice that
     // Channel is thread-safe and can be shared by all threads in your program.
     brpc::Channel channel;
 
