@@ -99,7 +99,7 @@ public:
     void on_configuration_committed(const ::braft::Configuration& conf) override ;
     void on_stop_following(const ::braft::LeaderChangeContext& ctx) override;
     void on_start_following(const ::braft::LeaderChangeContext& ctx) override;
-
+    void backup_data();
     bool is_leader() const{ return leader_term_.load(std::memory_order_acquire)>0;}
 
     Status do_put_or_del(uint8_t type,const butil::IOBuf& data, braft::Closure *done);

@@ -1,23 +1,7 @@
 //
 // Created by ehds on 19-5-18.
 //
-
-#include <gflags/gflags.h>
-#include <butil/logging.h>
-#include <butil/time.h>
-#include <brpc/channel.h>
-#include <butil/file_util.h>
-#include <pidb.pb.h>
-#include "pidb.pb.h"
-
-DEFINE_string(attachment, "", "Carry this along with requests");
-DEFINE_string(protocol, "baidu_std", "Protocol type. Defined in src/brpc/options.proto");
-DEFINE_string(connection_type, "", "Connection type. Available values: single, pooled, short");
-DEFINE_string(server, "127.0.1.1:8100", "IP Address of server");
-DEFINE_string(load_balancer, "", "The algorithm for load balancing");
-DEFINE_int32(timeout_ms, 100, "RPC timeout in milliseconds");
-DEFINE_int32(max_retry, 3, "Max retries(not including the first RPC)");
-DEFINE_int32(interval_ms, 1000, "Milliseconds between consecutive requests");
+#include "client.h"
 
 int main(int argc, char* argv[]) {
     // Parse gflags. We recommend you to use gflags as well.
@@ -44,10 +28,9 @@ int main(int argc, char* argv[]) {
 
     // Send a request and wait for the response every 1 second.
     int log_id = 0;
-   // while (!brpc::IsAskedToQuit()) {
+
 
         brpc::Controller cntl;
-
         pidb::PiDBResponse response;
 
         //-----BATCH OPERATION
@@ -70,7 +53,7 @@ int main(int argc, char* argv[]) {
         cntl.set_log_id(log_id ++);  // set by user
         // Set attachment which is wired to network directly instead of
         // being serialized into protobuf messages.
-        cntl.request_attachment().append(FLAGS_attachment);
+        //cntl.request_attachment().append(FLAGS_attachment);
 
         // Because `done'(last parameter) is NULL, this function waits until
         // the response comes back or error occurs(including timedout).
@@ -82,12 +65,59 @@ int main(int argc, char* argv[]) {
                       << ": " << response.success() << " (attached="
                       << cntl.response_attachment() << ")"
                       << " latency=" << cntl.latency_us() << "us";
+            if(response.success())
+                LOG(INFO)<<"Put operation success";
         } else {
             LOG(WARNING) << cntl.ErrorText();
         }
-        usleep(FLAGS_interval_ms * 1000L);
-  //  }
+        cntl.Reset();
+        //获得snapshot
+        pidb::PiDBSnapshot *snapshot = new pidb::PiDBSnapshot();
+      // pidb::PiDBSnapshot snapshot ;
+       pidb::Empty empty;
+        stub.GetSnapshot(&cntl,&empty,snapshot,NULL);
+        if(!cntl.Failed()){
+            LOG(INFO)<<snapshot->id();
+        } else{
+            LOG(ERROR)<<cntl.ErrorText();
+        }
 
+        usleep(FLAGS_interval_ms * 1000L);
+
+        cntl.Reset();
+
+        pidb::PiDBRequest request;
+
+        request.set_key("key5");
+        request.set_value("value_new");
+        stub.Put(&cntl,&request,&response,NULL);
+//
+        cntl.Reset();
+        request.set_key("key5");
+        request.set_allocated_snapshot(snapshot);
+
+
+        //request.set_allocated_snapshot(&snapshot);
+
+        LOG(INFO)<<request.has_snapshot();
+
+
+        stub.Get(&cntl,&request,&response,NULL);
+        if (!cntl.Failed())
+            LOG(INFO)<<response.new_value();
+
+        request.clear_snapshot();
+
+
+
+        //delete snapshot;
+//        cntl.Reset();
+//        pidb::Success s;
+//        stub.ReleaseSnapshot(&cntl,&snapshot,&s,NULL);
+//        if (!cntl.Failed()){
+//            LOG(INFO)<<s.message();
+//        }
+//        request.clear_snapshot();
 
         //GET OPERATION
 
@@ -104,7 +134,7 @@ int main(int argc, char* argv[]) {
 
             */
 
-        cntl.set_log_id(log_id++);  // set by user
+        // set by user
         //Snapshot
         /*
         pidb::PiDBSnapshot snapshot;
@@ -123,7 +153,7 @@ int main(int argc, char* argv[]) {
         }else{
             LOG(INFO)<<cntl.ErrorText();
         }
-         */
+
         cntl.Reset();
         pidb::PiDBIterator iterator;
         iterator.set_id(-1);
@@ -142,7 +172,6 @@ int main(int argc, char* argv[]) {
     } else{
         LOG(INFO)<<cntl.ErrorText();
     }
+    */
 
-    LOG(INFO) << "EchoClient is going to quit";
-    return 0;
 }

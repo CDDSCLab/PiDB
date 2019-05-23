@@ -27,8 +27,9 @@ namespace pidb {
         }
         node_options.election_timeout_ms = 5000;
         node_options.fsm = this;
+        node_options.node_owns_fsm = false;
         node_options.snapshot_interval_s = 30;
-        std::string prefix = "local://./" + group_;
+        std::string prefix = "local://" + group_;
         node_options.log_uri = prefix + "/log";
         node_options.raft_meta_uri = prefix + "/raft_meta";
         node_options.snapshot_uri = prefix + "/snapshot";
@@ -41,6 +42,9 @@ namespace pidb {
             return Status::InvalidArgument(group_, "Fail to init node");
         }
         node_ = node;
+
+        //backup data
+        backup_data();
         return Status::OK();
     }
 
@@ -143,6 +147,7 @@ namespace pidb {
         } else {
             s->s_ = Status::Corruption("raft", "Fail to Write");
         }
+
         return Status::OK();
     }
 
@@ -154,7 +159,6 @@ namespace pidb {
             // avoid that callback blocks the StateMachine
             braft::AsyncClosureGuard closure_guard(iter.done());
             butil::IOBuf data = iter.data();
-
             uint8_t type = kUnknownOp;
             data.cutn(&type, sizeof(uint8_t));
             switch (type) {
@@ -190,6 +194,8 @@ namespace pidb {
     void *RaftNode::save_snapshot(void *arg) {
         //获得handle
         SnapshotHandle *sh = static_cast<SnapshotHandle *> (arg);
+        std::unique_ptr<SnapshotHandle> arg_guard(sh);
+        brpc::ClosureGuard done_guard(sh->done);
         auto db = sh->db->db();
         //auto start = node_->ra
         std::string data_path = sh->data_path;
@@ -212,11 +218,13 @@ namespace pidb {
             sh->done->status().set_error(EIO, "Fail to add file to writer");
             return NULL;
         }
+        LOG(INFO)<<"SUCCESS";
         return NULL;
     }
 
     void RaftNode::on_snapshot_save(braft::SnapshotWriter *writer, braft::Closure *done) {
         SnapshotHandle *arg = new SnapshotHandle;
+        LOG(INFO)<<"SAVE SNAPSHOT ----------------------------";
         arg->db = db_;
         arg->writer = writer;
         arg->done = done;
@@ -231,21 +239,31 @@ namespace pidb {
     int RaftNode::on_snapshot_load(braft::SnapshotReader *reader) {
         //TO-DO
         //Load snopashot, 如果我们操作的文件（通过link过去的文件）被其他占用,会怎么杨？
+        LOG(INFO)<<"load SNAPSHOT ----------------------------";
         CHECK(!is_leader())<<"Leader is not supposed to load snapshot";
         if(reader->get_file_meta("region_data",NULL)!=0){
             LOG(ERROR)<<"Fail to find data on "<<reader->get_path();
             return  -1;
         }
         std::string snapshot_path = reader->get_path() + "/region_data";
-        std::string data_path =  data_path;
+        std::string data_path =  data_path_;
+
         if (link_overwrite(snapshot_path.c_str(), data_path.c_str()) != 0) {
             PLOG(ERROR) << "Fail to link data";
             return -1;
         }
 
+        std::string old_data_path = data_path_+".old";
         auto db = db_->db();
+        assert(db!=nullptr);
         std::string start,end;
-        auto s = db->LoadRange(data_path,&start,&end);
+        leveldb::Status s;
+        if(butil::PathExists(butil::FilePath(old_data_path))){
+            s = db->IngestRanges(old_data_path,data_path);
+        }else{
+           // s = db->LoadRange(data_path,&start,&end);
+        }
+
         LOG(ERROR)<<"Load snapshot";
         if(!s.ok()){
             LOG(ERROR)<<s.ToString();
@@ -276,18 +294,40 @@ namespace pidb {
 
     void RaftNode::on_stop_following(const ::braft::LeaderChangeContext &ctx) {
         LOG(INFO) << "Node stops following " << ctx;
+
+    }
+    void RaftNode::on_start_following(const ::braft::LeaderChangeContext &ctx) {
+        //在变为follower之前需要将之前的snapshot备份，为了后面的增量存储
+        LOG(INFO) << "Node start following " << ctx;
+        backup_data();
     }
 
-    void RaftNode::on_start_following(const ::braft::LeaderChangeContext &ctx) {
-        LOG(INFO) << "Node start following " << ctx;
+    void RaftNode::backup_data() {
+
+        //TODO 加入对比
+        LOG(INFO)<<"back up data";
+        std::string data_path = data_path_;
+        std::string old_data_path = data_path_+".old";
+
+        if (butil::PathExists(butil::FilePath(data_path))){
+            LOG(INFO)<<"Find data at "<<data_path;
+            if(butil::CopyFile(butil::FilePath(data_path),butil::FilePath(old_data_path))){
+                LOG(INFO)<<"COPY SUCCESS";
+            } else{
+                LOG(INFO)<<"COPY FAILED";
+            }
+
+        }
     }
     // end of @braft::StateMachine
 //TO-DO check option
 
     void RaftNodeClosure::Run() {
         std::unique_ptr<RaftNodeClosure> self_guard(this);
+        //用户closure
         brpc::ClosureGuard done_guard(done_);
         if (status().ok()) {
+            LOG(INFO)<<"DDD";
             return;
         }
         node_->redirect(response_);

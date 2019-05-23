@@ -134,11 +134,11 @@ namespace pidb {
     template <typename T>
     bool ContextCache<T>::Erase(int64_t context_id) {
         if(map_.find(context_id) == map_.end()){
-            return 0;
+            return false;
         }
 
         map_.erase(context_id);
-        return 0;
+        return true;
     }
 
 

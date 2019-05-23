@@ -2,20 +2,31 @@ syntax = "proto2";
 package pidb;
 option cc_generic_services = true;
 
+message Empty{}
+
+message Success{
+	required bool success   = 1;
+	optional string message = 2;
+}
+message PiDBSnapshot{
+	required int32 id = 1;  //snapshot id
+}
+
+
 message PiDBRequest{
 	required string key = 1;
 	optional string value = 2;
+	optional PiDBSnapshot snapshot = 3;  //读清求的snapshot
 }
+
 message PiDBOperator{
 	required int32 op = 1;   //0: unknown 0:Put 1:Delete  2:Write 完善
 	required string key=2;
 	optional string value = 3;
 }
+
 message PiDBWriteBatch{
 	repeated PiDBOperator WriteBatch = 1;
-}
-message PiDBSnapshot{
-	required int32 id = 1;  //snapshot id
 }
 
 message PiDBResponse{
@@ -23,12 +34,6 @@ message PiDBResponse{
 	optional string old_value = 2;
 	optional string new_value = 3;
 	optional string redirect = 4;
-}
-message Empty{}
-
-message Success{
-	required bool success   = 1;
-	optional string message = 2;
 }
 
 //Iterator的相关信息

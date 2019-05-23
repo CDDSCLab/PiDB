@@ -57,6 +57,7 @@ namespace pidb {
         auto s = server_->ReleaseSnapshot(id);
         if(s.ok()){
             response->set_success(true);
+            LOG(INFO)<<"RELEASE SUCCESS";
         }else{
             response->set_success(false);
             response->set_message(s.ToString());

@@ -113,15 +113,27 @@ namespace pidb {
         //因为是共享db，所以直接得到结果
         scoped_db db = db_;
         std::string value;
-        auto s = db_->db()->Get(leveldb::ReadOptions(), request->key(), &value);
+        leveldb::ReadOptions read_options;
+        LOG(INFO)<<request->has_snapshot();
+        LOG(INFO)<<"GET";
+        if (request->has_snapshot()){
+            LOG(INFO)<<"GET FROM SNAPSHOT";
+            auto snapshot_ptr = snapshots_.Get(request->snapshot().id());
+            if (snapshot_ptr== nullptr){
+                response->set_success(false);
+                return Status::InvalidArgument("Get","Snapshot is not existed");
+            }
+            read_options.snapshot = snapshot_ptr->Get();
+        }
+
+        auto s = db_->db()->Get(read_options, request->key(), &value);
         if (!s.ok()) {
-            LOG(ERROR) << "Fail to get key from db";
+            LOG(ERROR) << "Fail to get key from db"<<s.ToString();
             return Status::Corruption(request->key(), "Fail to get key from db");
         }
         response->set_new_value(std::move(value));
         response->set_success(true);
         return Status::OK();
-
     }
 
     void Server::Write(const ::pidb::PiDBWriteBatch *request,
@@ -210,6 +222,7 @@ namespace pidb {
             stream << "There is not snapshot indicated at " << id;
             return Status::InvalidArgument("Snapshot", stream.str());
         }
+        LOG(INFO)<<"RELEASE OK";
         return Status::OK();
 
     }
@@ -295,6 +308,7 @@ namespace pidb {
             res->set_success(false);
         } else {
             res->set_success(true);
+            LOG(INFO)<<"WRITE SUCCESS";
         }
     }
 

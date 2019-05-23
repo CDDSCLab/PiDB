@@ -111,25 +111,33 @@ if ((NOT LEVELDB_INCLUDE_PATH) OR (NOT LEVELDB_LIB))
 endif()
 include_directories(${LEVELDB_INCLUDE_PATH})
 
-add_executable(client client_test.cpp ${PROTO_SRC} ${PROTO_HEADER})
+include_directories($(PROJECT_SOURCE_DIR))
 
 set(DYNAMIC_LIB
-    ${CMAKE_THREAD_LIBS_INIT}
-    ${GFLAGS_LIBRARY}
-    ${PROTOBUF_LIBRARY}
-    ${GPERFTOOLS_LIBRARIES}
-    ${LEVELDB_LIB}
-    ${BRAFT_LIB}
-    ${BRPC_LIB}
-    rt
-    ssl
-    crypto
-    dl
-    z
-    )
+        ${CMAKE_THREAD_LIBS_INIT}
+        ${GFLAGS_LIBRARY}
+        ${PROTOBUF_LIBRARY}
+        ${GPERFTOOLS_LIBRARIES}
+        ${LEVELDB_LIB}
+        ${BRAFT_LIB}
+        ${BRPC_LIB}
+        rt
+        ssl
+        crypto
+        dl
+        z
+        )
 
-target_link_libraries(client
-                      "-Xlinker \"-(\""
-                      ${DYNAMIC_LIB}
-                      "-Xlinker \"-)\"")
+file(GLOB TEST_PIDB_SRCS "test_*.cpp")
+
+foreach(PIDB_UT ${TEST_PIDB_SRCS})
+    get_filename_component(PIDB_UT_WE ${PIDB_UT} NAME_WE)
+    add_executable(${PIDB_UT_WE} ${PIDB_UT} ${PROTO_SRC} ${PROTO_HEADER})
+    target_link_libraries(${PIDB_UT_WE}
+            "-Xlinker \"-(\""
+            ${DYNAMIC_LIB}
+            "-Xlinker \"-)\""
+            )
+endforeach()
+
 
