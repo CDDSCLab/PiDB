@@ -3,7 +3,7 @@ project(pidb C CXX)
 
 option(EXAMPLE_LINK_SO "Whether examples are linked dynamically" ON)
 option(LINK_TCMALLOC "Link tcmalloc if possible" ON)
-
+option(BUILD_UNITEST "Build Test" OFF)
 # execute_process(
 #    COMMAND bash -c "find /usr/local/ -type d -path \"*include/levledb\" | xargs dirname | xargs dirname | tr -d '\n'"
 #    OUTPUT_VARIABLE OUTPUT_PATH
@@ -178,8 +178,12 @@ set(DYNAMIC_LIB
     dl
     z
     )
-enable_testing()
-add_subdirectory(test)
+
+if (BUILD_TEST)
+    enable_testing()
+    add_subdirectory(test)
+endif ()
+
 
 target_link_libraries(pidb
                       "-Xlinker \"-(\""

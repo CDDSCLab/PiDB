@@ -11,10 +11,13 @@ file(GLOB TEST_PIDB_SRCS "test_*.cpp")
 foreach(PIDB_UT ${TEST_PIDB_SRCS})
         get_filename_component(PIDB_UT_WE ${PIDB_UT} NAME_WE)
         add_executable(${PIDB_UT_WE} ${PIDB_UT})
-        target_link_libraries(${PIDB_UT_WE}
+        target_link_libraries( ${PIDB_UT_WE}
+
+                "-Xlinker \"-(\""
                            ${GTEST_MAIN_LIB}
                           ${GTEST_LIB}
-                            pidb
-                            )
+                          pidb
+                          dl
+                "-Xlinker \"-)\"")
 endforeach()
 
