@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION  3.10)
+cmake_minimum_required(VERSION  3.09)
 project(pidb C CXX)
 
 option(EXAMPLE_LINK_SO "Whether examples are linked dynamically" ON)
