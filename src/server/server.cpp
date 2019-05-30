@@ -240,6 +240,7 @@ namespace pidb {
         auto group = "group1";
 
         it->Seek(start);
+        assert(it->Valid());
         //是不是需要优化以下阿
         auto id = iterators_.Put(std::unique_ptr<IteratorContext>(
                 new IteratorContext(std::move(it), group)));

@@ -43,13 +43,13 @@ int main(int argc, char* argv[]) {
     oper = batch.add_writebatch();
     //设置一个batch的操作 put key1->value1
     oper->set_op(2);
-    oper->set_key("key2");
-    oper->set_value("value2");
+    oper->set_key("key4");
+    oper->set_value("value4");
 
     oper=batch.add_writebatch();
     oper->set_op(2);
-    oper->set_key("key2");
-    oper->set_value("value2");
+    oper->set_key("key5");
+    oper->set_value("value_new");
     //oper->set_value("value2"); //删除操作不需要设置alue
 
     cntl.set_log_id(log_id ++);  // set by user

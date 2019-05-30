@@ -72,6 +72,7 @@ namespace pidb {
 
         brpc::ClosureGuard done_guard(done);
         auto id = server_->GetIterator(request->start(),request->stop());
+        LOG(INFO)<<id;
         response->set_id(id);
 
     }

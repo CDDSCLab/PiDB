@@ -67,7 +67,7 @@ int main(int argc, char* argv[]) {
                   << ": " << response.success() << " (attached="
                   << cntl.response_attachment() << ")"
                   << " latency=" << cntl.latency_us() << "us";
-        LOG(INFO)<<"Put Key"<<request.key()<<"value"<<request.value()<< "success";
+        LOG(INFO)<<"Put Key: "<<request.key()<<"value:"<<request.value()<< " success";
     } else {
         LOG(WARNING) << cntl.ErrorText();
     }
@@ -86,16 +86,17 @@ int main(int argc, char* argv[]) {
                   << ": " << response.success() << " (attached="
                   << cntl.response_attachment() << ")"
                   << " latency=" << cntl.latency_us() << "us";
-        LOG(INFO)<<"Put Key"<<request.key()<<"value"<<request.value()<< "success";
+        LOG(INFO)<<"Put Key: "<<request.key()<<" value: "<<request.value()<< " success";
     } else {
         LOG(WARNING) << cntl.ErrorText();
     }
 
     request.set_key("name");
     cntl.Reset();
+    request.set_allocated_snapshot(snapshot.get());
     stub.Get(&cntl,&request,&response,NULL);
     if (!cntl.Failed())
-        LOG(INFO)<<response.new_value();
+        LOG(INFO)<<"Snapshot id"<<snapshot->id()<<"Key:"<<request.key()<<" is "<<response.new_value();
 
     request.clear_snapshot();
 

@@ -35,7 +35,7 @@ int main(int argc, char* argv[]) {
     pidb::PiDBResponse response;
 
     request.set_key("key5");
-    request.set_value("value_new");
+    request.set_value("value5");
     stub.Put(&cntl,&request,&response,NULL);
 
     if (!cntl.Failed()) {
@@ -44,7 +44,7 @@ int main(int argc, char* argv[]) {
                   << ": " << response.success() << " (attached="
                   << cntl.response_attachment() << ")"
                   << " latency=" << cntl.latency_us() << "us";
-        LOG(INFO)<<"Put operation success";
+        LOG(INFO)<<"Put Key:"<<request.key()<<" Value:"<<request.value()<<" success";
     } else {
         LOG(WARNING) << cntl.ErrorText();
     }

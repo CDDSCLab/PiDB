@@ -4,18 +4,17 @@ project(block C CXX)
 option(EXAMPLE_LINK_SO "Whether examples are linked dynamically" OFF)
 option(LINK_TCMALLOC "Link tcmalloc if possible" ON)
 
-# execute_process(
-#    COMMAND bash -c "find ${CMAKE_SOURCE_DIR}/../.. -type d -path \"*output/include/braft\" | xargs dirname | xargs dirname | tr -d '\n'"
-#    OUTPUT_VARIABLE OUTPUT_PATH
-#)
-
+ execute_process(
+    COMMAND bash -c "find ${CMAKE_SOURCE_DIR}/../../.. -type d -path \"*output/include/braft\" | xargs dirname | xargs dirname | tr -d '\n'"
+  OUTPUT_VARIABLE OUTPUT_PATH
+)
+execute_process(
+    COMMAND bash -c "cp ${CMAKE_SOURCE_DIR}/*.sh ${CMAKE_CURRENT_BINARY_DIR}"
+)
 set(CMAKE_PREFIX_PATH ${OUTPUT_PATH})
 
 include(FindThreads)
 include(FindProtobuf)
-
-
-include_directories(${Protobuf_INCLUDE_DIRS})
 
 if (NOT PROTOBUF_PROTOC_EXECUTABLE)
     get_filename_component(PROTO_LIB_DIR ${PROTOBUF_LIBRARY} DIRECTORY)
@@ -48,7 +47,6 @@ include_directories(${BRAFT_INCLUDE_PATH})
 
 find_path(GFLAGS_INCLUDE_PATH gflags/gflags.h)
 find_library(GFLAGS_LIBRARY NAMES gflags libgflags)
-
 if((NOT GFLAGS_INCLUDE_PATH) OR (NOT GFLAGS_LIBRARY))
     message(FATAL_ERROR "Fail to find gflags")
 endif()

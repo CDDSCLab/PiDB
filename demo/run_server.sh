@@ -29,8 +29,9 @@ fi
 
 raft_peers=""
 for ((i=0; i<$FLAGS_server_num; ++i)); do
-    raft_peers="${raft_peers}${IP}:$(i(${FLAGS_port}+i)):0,"
+    raft_peers="${raft_peers}${IP}:$((${FLAGS_port}+$i)):0,"
 done
+echo ${raft_peers}
 
 if [ "$FLAGS_clean" == "0" ]; then
     rm -rf runtime

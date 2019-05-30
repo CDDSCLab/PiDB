@@ -34,10 +34,6 @@ demo演示
 ```
 mkdir bld && cd bld && cmake .. && make
 ```
-将运行脚本cp到文件夹下：
-```
-cp *.sh ./bld
-```
 然后运行
 ```
 run_server.sh 和 run_client.sh

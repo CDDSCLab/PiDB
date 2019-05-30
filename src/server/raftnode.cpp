@@ -199,26 +199,29 @@ namespace pidb {
         auto db = sh->db->db();
         //auto start = node_->ra
         std::string data_path = sh->data_path;
-        std::string snapshot_path = sh->writer->get_path() + "/region_data";
-
-        auto status = db->DumpRange(data_path,sh->range->start,sh->range->limit);
-       // butil::WriteFile(butil::FilePath(data_path),data_path.c_str(),3);
-        //auto status = Status::OK();
-        if(!status.ok()){
-            LOG(ERROR)<<status.ToString();
-            sh->done->status().set_error(EIO,"Fail to dump snapshot range %m");
-            return NULL;
-        }
-        if(link_overwrite(data_path.c_str(),snapshot_path.c_str())!=0) {
-            sh->done->status().set_error(EIO,"Fail to link snapshot to %s  %m",data_path.c_str());
-            return NULL;
-        }
-
-        if (sh->writer->add_file("region_data") != 0) {
-            sh->done->status().set_error(EIO, "Fail to add file to writer");
-            return NULL;
-        }
-        LOG(INFO)<<"SUCCESS";
+//        std::string snapshot_path = sh->writer->get_path() + "/region_data";
+//        LOG(INFO)<<data_path;
+//       //auto status = db->DumpRange(data_path,"","");
+//       status = Status::OK();
+//       assert(db!= nullptr);
+//       // butil::WriteFile(butil::FilePath(data_path),data_path.c_str(),3);
+//        //auto status = Status::OK();
+//        LOG(INFO)<<status.ok();
+//        if(!status.ok()){
+//            LOG(ERROR)<<status.ToString();
+//            sh->done->status().set_error(EIO,"Fail to dump snapshot range %m");
+//            return NULL;
+//        }
+//        if(link_overwrite(data_path.c_str(),snapshot_path.c_str())!=0) {
+//            sh->done->status().set_error(EIO,"Fail to link snapshot to %s  %m",data_path.c_str());
+//            return NULL;
+//        }
+//
+//        if (sh->writer->add_file("region_data") != 0) {
+//            sh->done->status().set_error(EIO, "Fail to add file to writer");
+//            return NULL;
+//        }
+//        LOG(INFO)<<"SUCCESS";
         return NULL;
     }
 
@@ -239,38 +242,38 @@ namespace pidb {
     int RaftNode::on_snapshot_load(braft::SnapshotReader *reader) {
         //TO-DO
         //Load snopashot, 如果我们操作的文件（通过link过去的文件）被其他占用,会怎么杨？
-        LOG(INFO)<<"load SNAPSHOT ----------------------------";
-        CHECK(!is_leader())<<"Leader is not supposed to load snapshot";
-        if(reader->get_file_meta("region_data",NULL)!=0){
-            LOG(ERROR)<<"Fail to find data on "<<reader->get_path();
-            return  -1;
-        }
-        std::string snapshot_path = reader->get_path() + "/region_data";
-        std::string data_path =  data_path_;
-
-        if (link_overwrite(snapshot_path.c_str(), data_path.c_str()) != 0) {
-            PLOG(ERROR) << "Fail to link data";
-            return -1;
-        }
-
-        std::string old_data_path = data_path_+".old";
-        auto db = db_->db();
-        assert(db!=nullptr);
-        std::string start,end;
-        leveldb::Status s;
-        if(butil::PathExists(butil::FilePath(old_data_path))){
-            s = db->IngestRanges(old_data_path,data_path);
-        }else{
-           // s = db->LoadRange(data_path,&start,&end);
-        }
-
-        LOG(ERROR)<<"Load snapshot";
-        if(!s.ok()){
-            LOG(ERROR)<<s.ToString();
-            return  -1;
-        }
-
-        LOG(INFO) << "ON_SNAPSHOT_LOAD";
+//        LOG(INFO)<<"load SNAPSHOT ----------------------------";
+//        CHECK(!is_leader())<<"Leader is not supposed to load snapshot";
+//        if(reader->get_file_meta("region_data",NULL)!=0){
+//            LOG(ERROR)<<"Fail to find data on "<<reader->get_path();
+//            return  -1;
+//        }
+//        std::string snapshot_path = reader->get_path() + "/region_data";
+//        std::string data_path =  data_path_;
+//
+//        if (link_overwrite(snapshot_path.c_str(), data_path.c_str()) != 0) {
+//            PLOG(ERROR) << "Fail to link data";
+//            return -1;
+//        }
+//
+//        std::string old_data_path = data_path_+".old";
+//        auto db = db_->db();
+//        assert(db!=nullptr);
+//        std::string start,end;
+//        leveldb::Status s;
+//        if(butil::PathExists(butil::FilePath(old_data_path))){
+//            s = db->IngestRanges(old_data_path,data_path);
+//        }else{
+//           // s = db->LoadRange(data_path,&start,&end);
+//        }
+//
+//        LOG(ERROR)<<"Load snapshot";
+//        if(!s.ok()){
+//            LOG(ERROR)<<s.ToString();
+//            return  -1;
+//        }
+//
+//        LOG(INFO) << "ON_SNAPSHOT_LOAD";
         return 0;
     }
 

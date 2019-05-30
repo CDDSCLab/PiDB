@@ -97,7 +97,6 @@ public:
         _node = node;
         return 0;
     }
-
     // Impelements Service methods
     void write(const PiDBRequest* request,
                PiDBResponse* response,
@@ -286,17 +285,17 @@ friend class DataClosure;
 
         std::string db_path = FLAGS_db_path + "/database";
 
-        if (link_overwrite(db_path.c_str(), snapshot_path.c_str()) != 0) {
-            sa->done->status().set_error(EIO, "Fail to link data : %m");
-            return NULL;
-        }
+        // if (link_overwrite(db_path.c_str(), snapshot_path.c_str()) != 0) {
+        //     sa->done->status().set_error(EIO, "Fail to link data : %m");
+        //     return NULL;
+        // }
 
-        // Snapshot is a set of files in raft. Add the only file into the
-        // writer here.
-        if (sa->writer->add_file("database") != 0) {
-            sa->done->status().set_error(EIO, "Fail to add file to writer");
-            return NULL;
-        }
+        // // Snapshot is a set of files in raft. Add the only file into the
+        // // writer here.
+        // if (sa->writer->add_file("database") != 0) {
+        //     sa->done->status().set_error(EIO, "Fail to add file to writer");
+        //     return NULL;
+        // }
         return NULL;
     }
 
@@ -315,7 +314,7 @@ friend class DataClosure;
     int on_snapshot_load(braft::SnapshotReader* reader) {
         // Load snasphot from reader, replacing the running StateMachine
         CHECK(!is_leader()) << "Leader is not supposed to load snapshot";
-        if (reader->get_file_meta("data", NULL) != 0) {
+        if (reader->get_file_meta("database", NULL) != 0) {
             LOG(ERROR) << "Fail to find `data' on " << reader->get_path();
             return -1;
         }
@@ -323,10 +322,10 @@ friend class DataClosure;
         _db = NULL;
         std::string snapshot_path = reader->get_path() + "/database";
         std::string db_path = FLAGS_db_path + "/database";
-        if (link_overwrite(snapshot_path.c_str(), db_path.c_str()) != 0) {
-            PLOG(ERROR) << "Fail to link data";
-            return -1;
-        }
+        // if (link_overwrite(snapshot_path.c_str(), db_path.c_str()) != 0) {
+        //     PLOG(ERROR) << "Fail to link data";
+        //     return -1;
+        // }
         // Reopen this database
 		leveldb::DB *db;
     	leveldb::Options options;
@@ -410,7 +409,7 @@ private:
 }
 
 int main(int argc, char* argv[]) {
-    //GFLAGS_NS::ParseCommandLineFlags(&argc, &argv, true);
+    GFLAGS_NS::ParseCommandLineFlags(&argc, &argv, true);
     butil::AtExitManager exit_manager;
 
     // Generally you only need one Server.
