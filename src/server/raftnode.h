@@ -144,6 +144,8 @@ private:
     scoped_db db_;
     Range range_;
 
+
+    //TODO 可以将这些信息直接用option来存储,而不是将他们独立出来
     //暂时用string 代表group,暂时让他们不可更改
     const std::string group_;
     //当前region的端口号

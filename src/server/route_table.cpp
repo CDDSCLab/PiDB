@@ -72,8 +72,10 @@ const std::string & RouteTable::FindRegion(const std::string &key) const {
     return NULL;
 }
 const std::string & RouteTable::operator[](const std::string &key) const {
-
-    return router_.find(key) == router_.end()?NULL:router_.find(key)->second.group;
+    //return router_.find(key) == router_.end()?NULL:router_.find(key)->second.group;
+    if(router_.find(key)==router_.end())
+        return NULL;
+    return router_.find(key)->second.group;
 }
 
 }//namespace pidb

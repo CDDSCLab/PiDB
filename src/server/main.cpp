@@ -4,7 +4,7 @@
 #include "context_cache.h"
 #include "route_table.h"
 #include <leveldb/db.h>
-
+#include "raftnode.h"
 DEFINE_string(data_path,"./data","Path of data stored on");
 DEFINE_int32(port,8100,"port of server to listen on");
 
@@ -18,8 +18,9 @@ int main(int argc,char *argv[]){
     //初始化server
     brpc::Server server;
     pidb::ServerOption options(FLAGS_data_path,FLAGS_port);
-    auto s = new pidb::Server(options);
-    pidb::PiDBServiceImpl service(s);
+    options.heartbeat_timeout_ms = 5000;
+    auto s = std::shared_ptr<pidb::Server>(new pidb::Server(options));
+    pidb::PiDBServiceImpl service(s.get());
     //增加Node Server的服务
     if (server.AddService(&service,
                           brpc::SERVER_DOESNT_OWN_SERVICE) != 0) {
@@ -40,6 +41,19 @@ int main(int argc,char *argv[]){
     //启动Node server
     s->Start();
     //等待用户结束
+    pidb::RaftOption option;
+    option.port = 8100;
+    option.group = "group1";
+    option.conf = "127.0.1.1:8100:1";
+    option.data_path ="./group1";
+    auto status= s->registerRaftNode(option,pidb::Range("",""));
+
+    option.conf = "127.0.1.1:8100:0";
+    option.group = "group0";
+    option.data_path ="./group0";
+    status= s->registerRaftNode(option,pidb::Range("",""));
+
+    LOG(INFO)<<"Register Node"<<status.ToString();
     while (!brpc::IsAskedToQuit()){
         sleep(1);
     }

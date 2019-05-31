@@ -6,15 +6,16 @@ namespace pidb {
                                 const ::pidb::PiDBRequest *request,
                                 ::pidb::PiDBResponse *response,
                                 ::google::protobuf::Closure *done) {
-        brpc::Controller *cntl = static_cast<brpc::Controller *>(controller);
+        //brpc::Controller *cntl = static_cast<brpc::Controller *>(controller);
         server_->Put(request, response, done);
+
     }
 
     void PiDBServiceImpl::Get(::google::protobuf::RpcController *controller,
                                const ::pidb::PiDBRequest *request,
                                ::pidb::PiDBResponse *response,
                                ::google::protobuf::Closure *done) {
-        auto cntl = static_cast<brpc::Controller *>(controller);
+        //auto cntl = static_cast<brpc::Controller *>(controller);
         brpc::ClosureGuard done_guard(done);
         server_->Get(request, response, done);
     }
@@ -26,7 +27,7 @@ namespace pidb {
 
         //brpc是使用static_cast转化，这是不安全的，https://docs.microsoft.com/en-us/cpp/cpp/static-cast-operator?view=vs-2019
         //应该使用dynamic_cast
-        auto cntl = static_cast<brpc::Controller *>(controller);
+       // auto cntl = static_cast<brpc::Controller *>(controller);
         auto req = request;
         auto batch_size = req->writebatch_size();
         if(batch_size<1){

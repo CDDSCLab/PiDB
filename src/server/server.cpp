@@ -3,41 +3,52 @@
 #include <sstream>
 #include <leveldb/db.h>   //leveldb
 #include <leveldb/write_batch.h>
+
 #include "raftnode.h"
 
+
 namespace pidb {
+
     Server::Server(const ServerOption &serveroption) : port_(serveroption.port),
-                                                       data_path_(std::move(serveroption.data_path)) {
+                                                       data_path_(std::move(serveroption.data_path))
+                                                       {
+        option_ = serveroption;
         //TO-DO recover from log
         //启动本地的raftnode，如果没有则初始化一个      
         //raft 和 server同属一个端口 
         //这只是一个实例，后面可能需调整优化
-        auto option = RaftOption();
+ //       auto option = RaftOption();
         //raft 和server共享一个rpc
-        option.port = serveroption.port;
-        option.group = "group1";
+//        option.port = serveroption.port;
+//        option.group = "group1";
 //        option.conf="127.0.1.1:8100:0,127.0.1.1:8101:0,127.0.1.1:8102:0";
-        option.conf = "127.0.1.1:8100:0";
-        option.data_path = serveroption.data_path+"/group1";
-        auto s = registerRaftNode(option);
-        if (!s.ok()) {
-            LOG(INFO) << "Fail to add raft node";
-        }
+//        option.conf = "127.0.1.1:8100:0";
+//        option.data_path = serveroption.data_path+"/group1";
+//        auto s = registerRaftNode(option,Range("",""));
+//        if (!s.ok()) {
+//            LOG(INFO) << "Fail to add raft node";
+//        }
     }
 
-    Status Server::registerRaftNode(const RaftOption &option) {
+    Status Server::registerRaftNode(const RaftOption &option,const Range &range) {
         if (nodes_.find(option.group) != nodes_.end()) {
             std::ostringstream s;
             s << "There is alreay existing raftnode in" << option.group;
             return Status::Corruption(option.group, s.str());
         }
 
-        Range range("", "");
         auto raftnode = std::make_shared<RaftNode>(option, range);
         //raftnode->SetDB(db_);
+        auto status = raftnode->start();
+        if (!status.ok()){
+            LOG(ERROR)<<"Fail to start raftnode group:"<<option.group;
+            return status;
+        }
+        //成功开启加入nodes
         nodes_[option.group] = raftnode;
         //判断一下是否当前map里面没有同样id的raft
-        return Status::OK();
+
+        return status;
     }
 
     //打开leveldb
@@ -58,8 +69,7 @@ namespace pidb {
         db_ = new SharedDB(db);
 
         //可能存在部分节点启动失败，暂时返回OK
-
-
+        //LoadNdes (从当前的配置中加载Nodes,因为Server可能从宕机中重启，需要恢复raft)
         for (auto const n:nodes_) {
             //在启动前设置共享的db,而不是在初始化的时候
             n.second->SetDB(db_);
@@ -69,6 +79,11 @@ namespace pidb {
                 return Status::Corruption(n.first, "Fail to start");
             }
         }
+
+        //start hearbeat timer
+        auto self(shared_from_this());
+        hearbeat_timer_.init(shared_from_this(),option_.heartbeat_timeout_ms);
+        hearbeat_timer_.start();
         return Status::OK();
     }
 
@@ -82,6 +97,7 @@ namespace pidb {
             n.second->join();
         }
         //server_.Join();
+        hearbeat_timer_.destroy();
         nodes_.clear();
         return Status::OK();
     }
@@ -280,6 +296,12 @@ namespace pidb {
         }
         return Status::OK();
     }
+    void Server::HandleHearbeat() {
+        //TO
+        for (const auto & node:nodes_){
+            LOG(INFO)<<node.first;
+        }
+    }
 
     ServerClosure::ServerClosure(pidb::PiDBResponse *response, google::protobuf::Closure *done,
                                  std::vector<std::string> groups)
@@ -318,4 +340,21 @@ namespace pidb {
         return c >= batchs.size();
     }
 
+
+    int ServerTimer::init(std::shared_ptr<pidb::Server> server, int timeout_ms) {
+        //调用父类的init函数进行初始化
+        BRAFT_RETURN_IF(RepeatedTimerTask::init(timeout_ms) != 0, -1);
+        server_ = server;
+        return 0;
+    }
+    void ServerTimer::on_destroy() {
+        if(server_!= nullptr){
+            server_.reset();
+            server_= nullptr;
+        }
+    }
+
+    void HeartbeatTimer::run() {
+        server_->HandleHearbeat();
+    }
 } //  pidb

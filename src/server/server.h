@@ -7,13 +7,15 @@
 #include <brpc/server.h>  //srever
 #include "context_cache.h"
 #include "shareddb.h"
+#include "braft/repeated_timer_task.h"
 #include "pidb/status.h"
 #include "pidb_service_impl.h"
 #include "pidb/options.h"
 
 namespace pidb{
 class RaftNode;
-
+struct Range;
+class Server;
 class ServerClosure: public braft::Closure{
 public:
     ServerClosure(PiDBResponse* response,
@@ -36,7 +38,24 @@ private:
     google::protobuf::Closure* done_;
 };
 
-class Server{
+
+class ServerTimer:public braft::RepeatedTimerTask{
+public:
+    ServerTimer():server_(nullptr){}
+    int init(std::shared_ptr<Server> server, int timeout_ms);
+    virtual void run() = 0;
+
+protected:
+    void on_destroy();
+    std::shared_ptr<Server> server_;
+};
+
+class HeartbeatTimer:public ServerTimer{
+protected:
+    void run();
+};
+
+class Server:public std::enable_shared_from_this<Server>{
 public:
     //operation for write
 
@@ -52,7 +71,7 @@ public:
 	class InfoHandler;
 	void getServerInfo(InfoHandler * handler) const;
 
-	Status registerRaftNode(const RaftOption &option);
+	Status registerRaftNode(const RaftOption &option,const Range &range);
 	Status removeRaftNode(const RaftOption &option);
 
 	//处理Put请求，需要转发到raft节点
@@ -83,6 +102,8 @@ public:
     Status ReleaseIterator(int64_t id);
     Status Next(int64_t id,std::string* value);
 
+    void HandleHearbeat();
+
 	void Recover();
 	void DestroyServer();
 
@@ -94,11 +115,15 @@ private:
     //用于存储用户存储的snapshotContext
     pidb::ContextCache<pidb::SnapshotContext> snapshots_;
     pidb::ContextCache<pidb::IteratorContext> iterators_;
+    ServerOption option_;
 	int32_t port_;
 	scoped_db db_;
 	//可能需要换一种数据结构,暂时用map代替
+	//TODO 一个Server里面的group只能一个raft节点？？？
 	std::map<std::string,std::shared_ptr<RaftNode>> nodes_;
 	std::string data_path_;
+
+	HeartbeatTimer hearbeat_timer_;
 };
 }//namespace pidb
 

@@ -3,15 +3,14 @@
 #include "server.h"
 #include "pidb/options.h"
 #include "leveldb/write_batch.h"
-
 namespace pidb {
 
     RaftNode::RaftNode(const RaftOption &option, const Range &range)
             : group_(std::move(option.group)),
             port_(option.port),
             conf_(std::move(option.conf)),
-            leader_term_(-1),
-            data_path_(std::move(option.data_path))
+            data_path_(std::move(option.data_path)),
+            leader_term_(-1)
             {
 
         SetRange(range.start, range.limit);
@@ -22,19 +21,22 @@ namespace pidb {
         butil::EndPoint addr(butil::my_ip(), port_);
         braft::NodeOptions node_options;
         if (node_options.initial_conf.parse_from(conf_) != 0) {
-            LOG(ERROR) << "Fail to parse configuration";
+            LOG(ERROR) << "Fail to parse configuration"<<conf_;
             return Status::OK();
         }
+        LOG(INFO)<<node_options.initial_conf;
         node_options.election_timeout_ms = 5000;
         node_options.fsm = this;
         node_options.node_owns_fsm = false;
-        node_options.snapshot_interval_s = 30;
+        node_options.snapshot_interval_s = 1800; //30*60s
         std::string prefix = "local://" + group_;
         node_options.log_uri = prefix + "/log";
         node_options.raft_meta_uri = prefix + "/raft_meta";
         node_options.snapshot_uri = prefix + "/snapshot";
         node_options.disable_cli = false;
-        braft::Node *node = new braft::Node(group_, braft::PeerId(addr));
+        auto idx =atoi(&(*(group_.end()-1)));
+
+        braft::Node *node = new braft::Node(group_, braft::PeerId(addr,idx));
         if (node->init(node_options) != 0) {
             LOG(ERROR) << "Fail to init raft node";
             delete node;
@@ -154,7 +156,6 @@ namespace pidb {
     void RaftNode::on_apply(braft::Iterator &iter) {
 //TO-DO
         for (; iter.valid(); iter.next()) {
-            PiDBResponse *response = NULL;
             // This guard helps invoke iter.done()->Run() asynchronously to
             // avoid that callback blocks the StateMachine
             braft::AsyncClosureGuard closure_guard(iter.done());
@@ -196,7 +197,7 @@ namespace pidb {
         SnapshotHandle *sh = static_cast<SnapshotHandle *> (arg);
         std::unique_ptr<SnapshotHandle> arg_guard(sh);
         brpc::ClosureGuard done_guard(sh->done);
-        auto db = sh->db->db();
+       // auto db = sh->db->db();
         //auto start = node_->ra
         std::string data_path = sh->data_path;
 //        std::string snapshot_path = sh->writer->get_path() + "/region_data";
@@ -410,5 +411,7 @@ namespace pidb {
         return node_->apply(task);
 
     }
+
+
 
 } // namespace pidb
