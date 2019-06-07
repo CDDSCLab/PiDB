@@ -1,9 +1,8 @@
 language: cpp
-
+dist: xenial
 sudo: required
 
 compiler:
-- clang
 - gcc
 
 env:
