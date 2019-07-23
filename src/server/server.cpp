@@ -3,8 +3,16 @@
 #include <sstream>
 #include <leveldb/db.h>   //leveldb
 #include <leveldb/write_batch.h>
-
+#include <butil/logging.h>
+#include <butil/time.h>
+#include <brpc/channel.h>
+#include <braft/raft.h>
+#include <braft/util.h>
+#include <braft/route_table.h>
+#include "master.pb.h"
 #include "raftnode.h"
+#include <gflags/gflags.h>
+//DEFINE_string(config, "127.0.1.1:8300:0,127.0.1.1:8301:0,127.0.1.1:8302:0", "Carry this along with requests");
 
 
 namespace pidb {
@@ -38,7 +46,8 @@ namespace pidb {
         }
 
         auto raftnode = std::make_shared<RaftNode>(option, range);
-        //raftnode->SetDB(db_);
+        raftnode->SetDB(db_);
+
         auto status = raftnode->start();
         if (!status.ok()){
             LOG(ERROR)<<"Fail to start raftnode group:"<<option.group;
@@ -49,6 +58,36 @@ namespace pidb {
         //判断一下是否当前map里面没有同样id的raft
 
         return status;
+    }
+
+    Status Server::registerRaftNode(const pidb::RaftOption &option, const pidb::Range &range,
+                                    ::pidb::PiDBRaftManageResponse *response, ::google::protobuf::Closure *done) {
+
+        if (nodes_.find(option.group) != nodes_.end()) {
+            std::ostringstream s;
+            s << "There is alreay existing raftnode in" << option.group;
+            return Status::Corruption(option.group, s.str());
+        }
+
+        auto raftnode = std::make_shared<RaftNode>(option, range);
+        raftnode->SetDB(db_);
+
+        google::protobuf::Closure* raft_done = brpc::NewCallback(
+                StartRaftCallback,response,done,raftnode);
+        //raftnode->done = raft_done;
+
+        auto status = raftnode->start();
+
+        if (!status.ok()){
+            LOG(ERROR)<<"Fail to start raftnode group:"<<option.group;
+            return status;
+        }
+        //成功开启加入nodes
+        nodes_[option.group] = raftnode;
+        //判断一下是否当前map里面没有同样id的raft
+
+        return status;
+
     }
 
     //打开leveldb
@@ -70,18 +109,18 @@ namespace pidb {
 
         //可能存在部分节点启动失败，暂时返回OK
         //LoadNdes (从当前的配置中加载Nodes,因为Server可能从宕机中重启，需要恢复raft)
-        for (auto const n:nodes_) {
-            //在启动前设置共享的db,而不是在初始化的时候
-            n.second->SetDB(db_);
-            if (!n.second->start().ok()) {
-                LOG(ERROR) << "Fail to start" << n.first << "node";
-                //TO-DO 是否记录失败信息，重试？
-                return Status::Corruption(n.first, "Fail to start");
-            }
-        }
+//        for (auto const n:nodes_) {
+//            //在启动前设置共享的db,而不是在初始化的时候
+//            n.second->SetDB(db_);
+//            if (!n.second->start().ok()) {
+//                LOG(ERROR) << "Fail to start" << n.first << "node";
+//                //TO-DO 是否记录失败信息，重试？
+//                return Status::Corruption(n.first, "Fail to start");
+//            }
+//        }
 
         //start hearbeat timer
-        auto self(shared_from_this());
+       // auto self(shared_from_this());
         hearbeat_timer_.init(shared_from_this(),option_.heartbeat_timeout_ms);
         hearbeat_timer_.start();
         return Status::OK();
@@ -119,6 +158,7 @@ namespace pidb {
         assert(node != nodes_.end());
 
         //TO-DO 异步的方式
+        assert(node->second.get()!= nullptr);
         node->second.get()->Put(request, response, done);
 
     }
@@ -296,12 +336,66 @@ namespace pidb {
         }
         return Status::OK();
     }
-    void Server::HandleHearbeat() {
+    void Server::HandleHeartbeat() {
         //TO
-        for (const auto & node:nodes_){
-            LOG(INFO)<<node.first;
+//        for (const auto & node:nodes_){
+//            LOG(INFO)<<node.first;
+//        }
+        brpc::Channel channel;
+        braft::PeerId leader;
+
+
+        if (braft::rtb::update_configuration("master", "127.0.1.1:8300:0,127.0.1.1:8301:0,127.0.1.1:8302:0") != 0) {
+            LOG(ERROR) << "Fail to register configuration " << "127.0.1.1:8300:0,127.0.1.1:8301:0,127.0.1.1:8302:0"
+                       << " of group " << "master";
         }
+        if (braft::rtb::select_leader("master", &leader) != 0) {
+            butil::Status st = braft::rtb::refresh_leader(
+                    "master", 500);
+            if (!st.ok()) {
+                LOG(WARNING) << "Fail to refresh_leader : " << st;
+                bthread_usleep(500 * 1000L);
+            }
+        }
+
+        if (braft::rtb::select_leader("master", &leader) != 0) {
+            butil::Status st = braft::rtb::refresh_leader(
+                    "master", 500);
+            if (!st.ok()) {
+
+                LOG(WARNING) << "Fail to refresh_leader : " << st;
+                bthread_usleep(500 * 1000L);
+            }
+        }
+
+        // Initialize the channel, NULL means using default options.
+        brpc::ChannelOptions options;
+        options.protocol = "baidu_std";
+        options.connection_type = "";
+        options.timeout_ms = 1000/*milliseconds*/;
+        options.max_retry = 3;
+        if (channel.Init(leader.addr, &options) != 0) {
+            LOG(ERROR) << "Fail to initialize channel";
+        }
+        pidb::MasterService_Stub stub(&channel);
+        int log_id = 0;
+        brpc::Controller cntl;
+        pidb::PiDBStoreResponse response;
+        pidb::PiDBStoreRequest request;
+        request.set_leader_num(0);
+        std::string address= "127.0.1.1:"+std::to_string(port_);
+        request.set_store_addr(address);
+        request.set_region_num(0);
+        stub.StoreHeartbeat(&cntl,&request,&response,NULL);
+        if(!cntl.Failed()){
+            LOG(INFO)<<"Get Key:"<<response.success();
+        } else{
+            LOG(INFO)<<cntl.ErrorText();
+        }
+
+        LOG(INFO)<<"HEARBET";
     }
+
 
     ServerClosure::ServerClosure(pidb::PiDBResponse *response, google::protobuf::Closure *done,
                                  std::vector<std::string> groups)
@@ -355,6 +449,28 @@ namespace pidb {
     }
 
     void HeartbeatTimer::run() {
-        server_->HandleHearbeat();
+        server_->HandleHeartbeat();
     }
+
+    void Server::StartRaftCallback(::pidb::PiDBRaftManageResponse *response, ::google::protobuf::Closure *done,std::shared_ptr<RaftNode> raft) {
+        LOG(INFO)<<"Raft Callback is leader"<<raft->is_leader();
+        brpc::ClosureGuard self_guard(done);
+        response->set_is_leader(raft->is_leader());
+    }
+    void Server::HandleRaftManage(const ::pidb::PiDBRaftManageRequest *request, ::pidb::PiDBRaftManageResponse *response,
+                                  ::google::protobuf::Closure *done) {
+        pidb::RaftOption option;
+        option.port = port_;
+        option.group = request->raft_group();
+        option.conf = request->raft_conf();
+        option.data_path ="./"+option.group;
+        //brpc::ClosureGuard guard_release(done);
+
+        auto status= registerRaftNode(option,pidb::Range(request->min_key(),request->max_key()));
+
+        LOG(INFO)<<"register RaftNode :"<<status.ToString()<<option.conf<<" "<<request->raft_group();
+
+    }
+
+
 } //  pidb

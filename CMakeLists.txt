@@ -30,6 +30,7 @@ if (NOT PROTOBUF_PROTOC_EXECUTABLE)
 endif()
 
 protobuf_generate_cpp(PROTO_SRC PROTO_HEADER "${PROJECT_SOURCE_DIR}/src/server/pidb.proto")
+protobuf_generate_cpp(MASTER_PROTO_SRC MASTER_PROTO_HEADER "${PROJECT_SOURCE_DIR}/src/server/master.proto")
 # include PROTO_HEADER
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
@@ -123,7 +124,7 @@ endif()
 
 
 add_subdirectory("${PROJECT_SOURCE_DIR}/src/libs/json11")
-
+include_directories(${PROTO_HEADER} ${MASTER_PROTO_HEADER})
 include_directories("${PROJECT_SOURCE_DIR}/src/libs")
 include_directories(${LEVELDB_INCLUDE_PATH})
 include_directories("${PROJECT_SOURCE_DIR}/src")
@@ -136,6 +137,8 @@ add_executable(pidb_server src/server/main.cpp)
 target_sources(pidb PUBLIC
 	${PROTO_SRC}
     ${PROTO_HEADER}
+    ${MASTER_PROTO_SRC}
+    ${MASTER_PROTO_HEADER}
     "${PROJECT_SOURCE_DIR}/src/server/route_table.cpp"
     "${PROJECT_SOURCE_DIR}/src/server/route_table.h"
     "${PROJECT_SOURCE_DIR}/src/port/port_stdcxx.h"
@@ -151,6 +154,8 @@ target_sources(pidb PUBLIC
     "${PROJECT_SOURCE_DIR}/${PIDB_SERVER_DIR}/shareddb.h"
     "${PROJECT_SOURCE_DIR}/${PIDB_SERVER_DIR}/pidb_service_impl.h"
     "${PROJECT_SOURCE_DIR}/${PIDB_SERVER_DIR}/pidb_service_impl.cpp"
+    "${PROJECT_SOURCE_DIR}/${PIDB_SERVER_DIR}/master_service_impl.h"
+    "${PROJECT_SOURCE_DIR}/${PIDB_SERVER_DIR}/master_service_impl.cpp"
     "${PROJECT_SOURCE_DIR}/${PIDB_SERVER_DIR}/context_cache.h"
     "${PROJECT_SOURCE_DIR}/${PIDB_SERVER_DIR}/context_cache.cpp"
 

@@ -7,6 +7,7 @@ class Server;
 class PiDBServiceImpl:public PiDBService{
     public:
     explicit PiDBServiceImpl(Server* server):server_(server){};
+
     void Get(::google::protobuf::RpcController* controller,
              const ::pidb::PiDBRequest* request,
             ::pidb::PiDBResponse* response,
@@ -41,7 +42,6 @@ class PiDBServiceImpl:public PiDBService{
                  const ::pidb::PiDBIterator* request,
                  ::pidb::PiDBResponse* response,
                  ::google::protobuf::Closure* done) override ;
-
     private:
     Server *server_;
 };

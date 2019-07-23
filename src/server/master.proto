@@ -1,0 +1,91 @@
+syntax = "proto2";
+package pidb;
+option cc_generic_services = true;
+// 注：master默认是一个3副本的raft组，也有leader
+// 暂未考虑master的宕机情况
+
+// client根据key向master请求路由信息
+message PiDBClientRequest{
+    required string key = 1;          // client根据此key查询路由信息
+    enum Action{
+        GET = 1;
+        PUT = 2;
+        DELETE = 3;
+    }
+    required Action action = 2;       // 操作类型（主要区分读写）
+}
+message PiDBClientResponse{
+    required bool success = 1;        // client查询路由信息是否成功
+    optional string redirect = 2;     // master的leader更替
+    optional string leader_addr = 3;  // 返回对应region的leader地址
+    optional string raft_group = 4;   // 返回对应region的raft组名
+    optional string raft_conf =5;     // 返回对应region的raft配置
+}
+
+// server端（Store）的心跳
+message PiDBStoreRequest{
+    required string store_addr = 1;   // store的地址
+    optional int32 region_num = 2;    // store上的region数量
+    optional int32 leader_num = 3;    // store上的leader数量
+}
+message PiDBStoreResponse{
+    required bool success = 1;        // 一个成功通信的标记
+    optional string redirect = 2;     // master的leader更替
+}
+
+// 主动发rpc给某些机器通知新增raft节点(关于一个region)
+message PiDBRaftManageRequest{
+    required bool is_new = 1;        // 是新增还是删除
+    required string raft_group = 2;  // 组名
+    optional string raft_conf = 3;   // raft组配置信息
+    optional string min_key = 4;     // 组相关region的范围
+    optional string max_key = 5;     // 同上
+}
+// 空包
+message PiDBRaftManageResponse{
+    required bool is_leader = 1;      // 是否是leader
+    optional string leader_addr = 2;  // 若是leader发地址
+}
+
+// 具体region的心跳（只有leader会上报新跳）
+message PiDBRegionRequest{
+    required string leader_addr = 1;  // 发送心跳的leader的地址
+    required string raft_group = 2;   // region所在raft组名
+    repeated string peer_addr = 3;   // regiond的副本地址(不含leader)
+}
+message PiDBRegionResponse{
+    required bool success = 1;     // 一个成功通信的标记
+    optional string redirect = 2;  // master的leader更替 
+    optional string conf = 3;      // 新raft组配置信息（若有节点增减）
+}
+
+// region的分裂
+message PiDBSplitRequest{
+    required string leader_addr = 1;  // 分裂的leader的地址
+    required string raft_group = 2;   // region所在raft组名
+    required string split_key = 3;    // region根据此key分裂  
+}
+message PiDBSplitResponse{
+    required bool success = 1;     // 一个成功通信的标记
+    optional string redirect = 3;  // master的leader更替 
+}
+
+// 通知新分裂的region的leader开始拉分裂数据
+message PiDBPullRequest{
+    required string leader_addr = 1;  // 老region的leader的地址
+    required string raft_group = 2;   // 老region所在raft组名 
+    required string raft_conf = 3;    // 老region的让raft组配置
+}
+message PiDBPullResponse{
+    required bool success = 1;     // 一个成功通信的标记
+    optional string redirect = 2;  // master的leader更替 
+}
+
+service MasterService {
+    rpc QueryRoute (PiDBClientRequest) returns (PiDBClientResponse);
+    rpc StoreHeartbeat (PiDBStoreRequest) returns (PiDBStoreResponse);
+    rpc RegionHeartbeat (PiDBRegionRequest) returns (PiDBRegionResponse);
+    rpc RaftManage (PiDBRaftManageRequest) returns (PiDBRaftManageResponse);
+    rpc RegionSplit (PiDBSplitRequest) returns (PiDBSplitResponse);
+    rpc PullData (PiDBPullRequest) returns (PiDBPullResponse);
+}

@@ -10,7 +10,9 @@
 #include "braft/repeated_timer_task.h"
 #include "pidb/status.h"
 #include "pidb_service_impl.h"
+#include "master.pb.h"
 #include "pidb/options.h"
+
 
 namespace pidb{
 class RaftNode;
@@ -55,6 +57,7 @@ protected:
     void run();
 };
 
+
 class Server:public std::enable_shared_from_this<Server>{
 public:
     //operation for write
@@ -72,6 +75,7 @@ public:
 	void getServerInfo(InfoHandler * handler) const;
 
 	Status registerRaftNode(const RaftOption &option,const Range &range);
+    Status registerRaftNode(const RaftOption &option,const Range &range,::pidb::PiDBRaftManageResponse *response,::google::protobuf::Closure *done);
 	Status removeRaftNode(const RaftOption &option);
 
 	//处理Put请求，需要转发到raft节点
@@ -102,13 +106,19 @@ public:
     Status ReleaseIterator(int64_t id);
     Status Next(int64_t id,std::string* value);
 
-    void HandleHearbeat();
+    void HandleHeartbeat();
 
 	void Recover();
 	void DestroyServer();
 
 	// 给master发送心跳信息
-	void Hearbet();
+	void Heartbeat();
+	void HandleRaftManage( const ::pidb::PiDBRaftManageRequest *request,
+                           ::pidb::PiDBRaftManageResponse *response,
+                           ::google::protobuf::Closure *done);
+
+    static void StartRaftCallback(::pidb::PiDBRaftManageResponse *response,::google::protobuf::Closure *done,std::shared_ptr<RaftNode> raft);
+
     ~Server(){}
 
 private:

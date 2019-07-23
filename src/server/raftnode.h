@@ -8,6 +8,7 @@
 #include <braft/util.h> //braft::AsyncClosureGuard
 #include <braft/storage.h> //braf::SnapshotWriter
 #include <pidb/status.h>
+#include "braft/repeated_timer_task.h"
 #include <leveldb/db.h>
 #include "shareddb.h"
 #include <pidb.pb.h>
@@ -17,8 +18,8 @@ namespace pidb
 class RaftNode;
 struct RaftOption;
 class Status;
-class RaftNodeClosure: public braft::Closure{
 
+class RaftNodeClosure: public braft::Closure{
 public:
 	RaftNodeClosure(RaftNode* node,
             const PiDBRequest *request,
@@ -51,8 +52,25 @@ struct Range{
 using leveldb::Snapshot;
 using leveldb::Iterator;
 
+    class RaftTimer:public braft::RepeatedTimerTask{
+    public:
+        RaftTimer():raft_(nullptr){}
+        int init(RaftNode* raft, int timeout_ms);
+        virtual void run() = 0;
 
-class RaftNode : public braft::StateMachine {
+    protected:
+        void on_destroy();
+        //std::shared_ptr<RaftNode> raft_;
+         RaftNode* raft_;
+    };
+
+    class RaftHeartbeatTimer:public RaftTimer{
+    protected:
+        void run();
+    };
+
+
+class RaftNode : public braft::StateMachine{
 public:
 
     enum RaftOpType {
@@ -62,6 +80,7 @@ public:
         kDeleteOP  = 3,
         kWriteOp   = 4
     };
+   int count_=0;
 
     //RaftNode 的Rnage初始化不用option传入，因为range可能在运行中是经常变化的
     //我认为不要写入option中可能好一点
@@ -101,6 +120,7 @@ public:
     void on_start_following(const ::braft::LeaderChangeContext& ctx) override;
     void backup_data();
     bool is_leader() const{ return leader_term_.load(std::memory_order_acquire)>0;}
+    void on_role_change();
 
     Status do_put_or_del(uint8_t type,const butil::IOBuf& data, braft::Closure *done);
     Status do_write(uint8_t type,const butil::IOBuf& data,braft::Closure *done);
@@ -134,8 +154,12 @@ public:
         if(node_) node_->join();
     }
 
+    void HandleHeartbeat();
+    static void* RequestSplit(void *arg);
+
     static void *save_snapshot(void* arg);
     static int link_overwrite(const char* old_path, const char* new_path);
+
 private:
     friend class RaftNodeClosure;
     mutable butil::Mutex _db_mutex;
@@ -156,6 +180,8 @@ private:
     //当前的任期号
     std::atomic<int64_t> leader_term_;
 
+    //raft timer
+    RaftHeartbeatTimer raft_timer_;
     //用于存储当前region的snapshot 的handle
     struct SnapshotHandle{
         scoped_db db;
@@ -166,6 +192,8 @@ private:
 
     };
 
+    //当raft成为leader或者follower后需要回调server传过来的方法
+    ::google::protobuf::Closure* role_change;
 };
 
 } // pidb

@@ -3,6 +3,9 @@
 #include "server.h"
 #include "pidb/options.h"
 #include "leveldb/write_batch.h"
+#include <bthread/bthread.h>
+#include <brpc/channel.h>
+#include <braft/route_table.h>
 namespace pidb {
 
     RaftNode::RaftNode(const RaftOption &option, const Range &range)
@@ -28,7 +31,7 @@ namespace pidb {
         node_options.election_timeout_ms = 5000;
         node_options.fsm = this;
         node_options.node_owns_fsm = false;
-        node_options.snapshot_interval_s = 1800; //30*60s
+        node_options.snapshot_interval_s = 30; //30*60s
         std::string prefix = "local://" + group_;
         node_options.log_uri = prefix + "/log";
         node_options.raft_meta_uri = prefix + "/raft_meta";
@@ -47,6 +50,9 @@ namespace pidb {
 
         //backup data
         backup_data();
+        //start timer
+//        raft_timer_.init(shared_from_this(),2000);
+
         return Status::OK();
     }
 
@@ -227,17 +233,18 @@ namespace pidb {
     }
 
     void RaftNode::on_snapshot_save(braft::SnapshotWriter *writer, braft::Closure *done) {
-        SnapshotHandle *arg = new SnapshotHandle;
+        //SnapshotHandle *arg = new SnapshotHandle;
+        brpc::ClosureGuard done_guard(done);
         LOG(INFO)<<"SAVE SNAPSHOT ----------------------------";
-        arg->db = db_;
-        arg->writer = writer;
-        arg->done = done;
-        arg->range = &range_;
-        arg->data_path = data_path_;
-        bthread_t tid;
+//        arg->db = db_;
+//        arg->writer = writer;
+//        arg->done = done;
+//        arg->range = &range_;
+//        arg->data_path = data_path_;
+//        //bthread_t tid;
         //放到后台线程里面执行,urgent保证当前线程会被马上调度
         //bthread 文档：Use this function when the new thread is more urgent.
-        bthread_start_urgent(&tid, NULL, save_snapshot, arg);
+       // bthread_start_urgent(&tid, NULL, save_snapshot, arg);
     }
 
     int RaftNode::on_snapshot_load(braft::SnapshotReader *reader) {
@@ -279,8 +286,17 @@ namespace pidb {
     }
 
     void RaftNode::on_leader_start(int64_t term) {
-
+//        if(done!= nullptr && leader_term_<0)
+//            brpc::ClosureGuard self_guard(done);
+        LOG(INFO)<<"Become Leader";
         leader_term_.store(term, std::memory_order_release);
+        raft_timer_.init(this,2000);
+        raft_timer_.start();
+        bthread_t tid;
+        std::string key = "n";
+//        bthread_start_urgent(&tid,NULL,RaftNode::RequestSplit,&key);
+
+
     }
 
     void RaftNode::on_shutdown() {
@@ -301,9 +317,18 @@ namespace pidb {
 
     }
     void RaftNode::on_start_following(const ::braft::LeaderChangeContext &ctx) {
+//        if(done != nullptr && leader_term_<0)
+//            brpc::ClosureGuard self_guard(done);
+
         //在变为follower之前需要将之前的snapshot备份，为了后面的增量存储
         LOG(INFO) << "Node start following " << ctx;
         backup_data();
+    }
+
+    //当raft成为leader或者follower后需要回调server传过来的方法
+    void RaftNode::on_role_change() {
+        if(role_change == nullptr) return;
+
     }
 
     void RaftNode::backup_data() {
@@ -412,6 +437,155 @@ namespace pidb {
 
     }
 
+    void RaftNode::HandleHeartbeat() {
+        //TODO 放入节点角色变化去取消timer
+        if(!is_leader()) return;
+
+        #
+        brpc::Channel channel;
+        braft::PeerId leader;
 
 
+        if (braft::rtb::update_configuration("master", "127.0.1.1:8300:0,127.0.1.1:8301:0,127.0.1.1:8302:0") != 0) {
+            LOG(ERROR) << "Fail to register configuration " << "127.0.1.1:8300:0,127.0.1.1:8301:0,127.0.1.1:8302:0"
+                       << " of group " << "master";
+        }
+        if (braft::rtb::select_leader("master", &leader) != 0) {
+            butil::Status st = braft::rtb::refresh_leader(
+                    "master", 500);
+            if (!st.ok()) {
+                LOG(WARNING) << "Fail to refresh_leader : " << st;
+                bthread_usleep(500 * 1000L);
+            }
+        }
+
+        if (braft::rtb::select_leader("master", &leader) != 0) {
+            butil::Status st = braft::rtb::refresh_leader(
+                    "master", 500);
+            if (!st.ok()) {
+
+                LOG(WARNING) << "Fail to refresh_leader : " << st;
+                bthread_usleep(500 * 1000L);
+            }
+        }
+
+        // Initialize the channel, NULL means using default options.
+        brpc::ChannelOptions options;
+        options.protocol = "baidu_std";
+        options.connection_type = "";
+        options.timeout_ms = 1000/*milliseconds*/;
+        options.max_retry = 3;
+        if (channel.Init(leader.addr, &options) != 0) {
+            LOG(ERROR) << "Fail to initialize channel";
+        }
+        pidb::MasterService_Stub stub(&channel);
+        int log_id = 0;
+        brpc::Controller cntl;
+        pidb::PiDBRegionRequest request;
+        pidb::PiDBRegionResponse response;
+        std::string address= "127.0.1.1:"+std::to_string(port_);
+        request.set_leader_addr(address);
+//        auto s = request.add_peer_addr();
+//         s = new std::string(address);
+       // request.add_peer_addr(address);
+        request.set_raft_group(group_);
+        //request.set_peer_addr(0,address);
+        LOG(INFO)<<group_;
+        stub.RegionHeartbeat(&cntl,&request,&response,NULL);
+        if(!cntl.Failed()){
+            LOG(INFO)<<"response"<<response.success();
+        } else{
+            LOG(INFO)<<cntl.ErrorText();
+        }
+
+        LOG(INFO)<<"RAFT HEARBET";
+        if(count_==5 && group_=="group")
+            RequestSplit(this);
+        count_++;
+    }
+
+    void* RaftNode::RequestSplit(void *arg) {
+
+        LOG(INFO)<<"Request Split";
+
+        auto raft = (reinterpret_cast<RaftNode *>(arg));
+        if(!raft->is_leader()) return nullptr;
+        usleep(1000*1000);
+        //init channel
+        brpc::Channel channel;
+        braft::PeerId leader;
+
+        if (braft::rtb::update_configuration("master", "127.0.1.1:8300:0,127.0.1.1:8301:0,127.0.1.1:8302:0") != 0) {
+            LOG(ERROR) << "Fail to register configuration " << "127.0.1.1:8300:0,127.0.1.1:8301:0,127.0.1.1:8302:0"
+                       << " of group " << "master";
+        }
+        if (braft::rtb::select_leader("master", &leader) != 0) {
+            butil::Status st = braft::rtb::refresh_leader(
+                    "master", 500);
+            if (!st.ok()) {
+                LOG(WARNING) << "Fail to refresh_leader : " << st;
+                bthread_usleep(500 * 1000L);
+            }
+        }
+
+        if (braft::rtb::select_leader("master", &leader) != 0) {
+            butil::Status st = braft::rtb::refresh_leader(
+                    "master", 500);
+            if (!st.ok()) {
+
+                LOG(WARNING) << "Fail to refresh_leader : " << st;
+                bthread_usleep(500 * 1000L);
+            }
+        }
+
+        // Initialize the channel, NULL means using default options.
+        brpc::ChannelOptions options;
+        options.protocol = "baidu_std";
+        options.connection_type = "";
+        options.timeout_ms = 1000/*milliseconds*/;
+        options.max_retry = 3;
+        if (channel.Init(leader.addr, &options) != 0) {
+            LOG(ERROR) << "Fail to initialize channel";
+        }
+        pidb::MasterService_Stub stub(&channel);
+        int log_id = 0;
+        brpc::Controller cntl;
+
+        pidb::PiDBSplitRequest request;
+        pidb::PiDBSplitResponse response;
+
+
+        std::string address= "127.0.1.1:"+std::to_string(raft->port_);
+        request.set_leader_addr(address);
+        LOG(INFO)<<address;
+        request.set_raft_group(raft->group_);
+        request.set_split_key("b");
+
+        LOG(INFO)<<raft->group_;
+        stub.RegionSplit(&cntl,&request,&response,NULL);
+        if(!cntl.Failed()){
+            LOG(INFO)<<"response"<<response.success();
+        } else{
+            LOG(INFO)<<cntl.ErrorText();
+        }
+        return nullptr;
+    }
+
+    int RaftTimer::init(RaftNode* raft, int timeout_ms) {
+        //调用父类的init函数进行初始化
+
+        BRAFT_RETURN_IF(RepeatedTimerTask::init(timeout_ms) != 0, -1);
+        raft_ = raft;
+        return 0;
+    }
+    void RaftTimer::on_destroy() {
+//        if(raft_!= nullptr){
+//            raft_.reset();
+//            raft_= nullptr;
+//        }
+    }
+
+    void RaftHeartbeatTimer::run() {
+        raft_->HandleHeartbeat();
+    }
 } // namespace pidb

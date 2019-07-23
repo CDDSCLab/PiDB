@@ -23,7 +23,7 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
-    //出使花stub
+    //初始化stub
     pidb::PiDBService_Stub stub(&channel);
 
     // Send a request and wait for the response every 1 second.
