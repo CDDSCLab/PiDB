@@ -43,8 +43,7 @@ message PiDBRaftManageRequest{
 }
 // 空包
 message PiDBRaftManageResponse{
-    required bool is_leader = 1;      // 是否是leader
-    optional string leader_addr = 2;  // 若是leader发地址
+    required bool is_leader = 1;    // 是否是leader
 }
 
 // 具体region的心跳（只有leader会上报新跳）
@@ -81,6 +80,14 @@ message PiDBPullResponse{
     optional string redirect = 2;  // master的leader更替 
 }
 
+message EchoRequest {
+      required string message = 1;
+};
+
+message EchoResponse {
+      required string message = 1;
+};
+
 service MasterService {
     rpc QueryRoute (PiDBClientRequest) returns (PiDBClientResponse);
     rpc StoreHeartbeat (PiDBStoreRequest) returns (PiDBStoreResponse);
@@ -88,4 +95,5 @@ service MasterService {
     rpc RaftManage (PiDBRaftManageRequest) returns (PiDBRaftManageResponse);
     rpc RegionSplit (PiDBSplitRequest) returns (PiDBSplitResponse);
     rpc PullData (PiDBPullRequest) returns (PiDBPullResponse);
+ 	rpc Echo(EchoRequest) returns (EchoResponse);
 }

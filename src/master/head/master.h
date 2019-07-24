@@ -14,7 +14,7 @@
 #include <string>
 #include "./route_table.h"
 #include "./store_heartbeat.h"
-#include "./master.pb.h"
+#include "master.pb.h"
 #include "./guard_dog.h"
 #include "./raft_manage.h"
 
@@ -38,7 +38,7 @@ struct RM{
 	RM(Master* m,const string& n,const string& x,bool i,void* v):
         master_(m),min_key_(n),max_key_(x),is_split_(i),arg_(v){};
 };
-// 用于检测分裂的region是否及时选出leader的回调函数的参数封装
+// 用于检测分裂的region是否及时选出leader的参数封装
 struct ISHL{
     Master* master_;
     string old_group_;
@@ -74,7 +74,6 @@ private:
     GuardDog* guard_dog_region_; // 检查region存活的看门狗
     RaftManage* rm_;  // 用于raft节点调度
     int raft_copy_num_;  // raft组默认的最大副本数
-    int region_heart_;   // region的心跳，有特殊用
     // 不同的Raft操作区分标志（因为都是在同一个on_apply中执行）
     enum RaftOpType{ 
         DefalutOp_, StoreHeartOp_, RegionHeartOp_, RegionSplitOp_
@@ -88,7 +87,10 @@ public:
     // store心跳时间(s),检查store存活的时间间隔(ms)
     Master(MasterArg* master_arg);
     ~Master();
-
+    void testtest(){
+        auto rm = new pidb::RaftManage();
+        rm->AddNode("","","","","127.0.1.1:8200", true,nullptr, nullptr);
+    };
     // 与client的交互（即路由信息查询）
     void QueryRoute(const PiDBClientRequest* request,
         PiDBClientResponse* response);
@@ -111,8 +113,7 @@ public:
         PiDBRegionResponse* response, google::protobuf::Closure* done);
 
     // 分裂后的region选出leader后的回调函数
-    static void IfSplitHasLeader(void* arg, brpc::Controller* cntl,
-        PiDBRaftManageResponse* response);
+    static void IfSplitHasLeader(void* arg, brpc::Controller* cntl);
 
     // raft节点启动
     int Start(int port, string conf, string group);
@@ -147,13 +148,15 @@ private:
     void on_apply(braft::Iterator& iter);;
     
     // braft的一堆东西
-    void on_leader_start(int64_t term);
-    void on_leader_stop(const butil::Status& status);
-    void on_shutdown();
-    void on_error(const ::braft::Error& e);
-    void on_configuration_committed(const ::braft::Configuration& conf);
-    void on_stop_following(const ::braft::LeaderChangeContext& ctx);
-    void on_start_following(const ::braft::LeaderChangeContext& ctx);
+    void on_leader_start(int64_t term) override ;
+    void on_leader_stop(const butil::Status& status) override ;
+    void on_snapshot_save(braft::SnapshotWriter* writer,braft::Closure* done) override;
+    int on_snapshot_load(braft::SnapshotReader* reader) override;
+    void on_shutdown() override ;
+    void on_error(const ::braft::Error& e) override ;
+    void on_configuration_committed(const ::braft::Configuration& conf) override ;
+    void on_stop_following(const ::braft::LeaderChangeContext& ctx) override ;
+    void on_start_following(const ::braft::LeaderChangeContext& ctx) override ;
 };
 
 class ClientClosure : public braft::Closure {
@@ -257,6 +260,7 @@ public:
         google::protobuf::Closure* done) {
         return master_->RegionSplit(request, response, done);
     }
+
 private:
     Master* master_;
 };

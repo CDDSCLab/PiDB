@@ -1,0 +1,34 @@
+# 此文件应该放在源文件目录下
+cmake_minimum_required (VERSION 3.09)
+project (db)
+
+# include PROTO_HEADER
+include_directories(${CMAKE_CURRENT_BINARY_DIR})
+
+include(FindProtobuf)
+# 头文件目录
+if (NOT PROTOBUF_PROTOC_EXECUTABLE)
+    get_filename_component(PROTO_LIB_DIR ${PROTOBUF_LIBRARY} DIRECTORY)
+    set (PROTOBUF_PROTOC_EXECUTABLE "${PROTO_LIB_DIR}/../bin/protoc")
+endif()
+protobuf_generate_cpp(MASTER_PROTO_SRC MASTER_PROTO_HEADER "${PROJECT_SOURCE_DIR}/master.proto")
+include_directories(${CMAKE_CURRENT_BINARY_DIR})
+
+include_directories("../include")
+
+# 源文件目录放进工程
+file(GLOB SRCS "./head/*")
+
+# 库目录（前者本地，后者系统）
+link_directories("../libs")
+link_directories("/usr/lib")
+
+# 可执行文件
+add_executable(client test_client.cpp ${SRCS})
+add_executable(server master_main.cpp ${SRCS})
+add_executable(test_main test_main.cpp ${SRCS})
+# 连接库(注意顺序)
+target_link_libraries(client libbraft.so libbrpc.so libgflags.so libprotobuf.so libleveldb.so libpthread.so libsnappy.so libcrypto.so)
+target_link_libraries(server libbraft.so libbrpc.so libgflags.so libprotobuf.so libleveldb.so libpthread.so libsnappy.so libcrypto.so)
+target_link_libraries(test_main libbraft.so libbrpc.so libgflags.so libprotobuf.so libleveldb.so libpthread.so libsnappy.so libcrypto.so)
+

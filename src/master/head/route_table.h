@@ -34,9 +34,7 @@ private:
 		string leader_addr_;  // 所属raft的leader地址
 		string conf_;         // 所属raft组配置
 		// 路由记录状态
-		// 0完全正常，-4为彻底凉凉
-		// 1普通正常（要分裂的region的新raft刚刚选出leader，
-		// 老region的范围要强制缩小，需要标识以防止心跳改变
+		// 0正常，-4为彻底凉凉
 		// -1为无leader(单纯新增region)
 		// -2为无leader（分裂新增的region）
 		// -3为有leader但数据不完整（分类新增的leader）
@@ -107,6 +105,13 @@ public:
 
 	// 清空路由
 	void Clear();
+
+	// 测试用
+	void PrintInfo(){
+	    for(const auto &v:route_table_){
+	        LOG(INFO)<<v.conf_<<" "<<v.raft_group_<<route_table_.size();
+	    }
+	}
 };
 }// namespace pidb
 

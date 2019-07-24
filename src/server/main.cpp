@@ -6,6 +6,7 @@
 #include <leveldb/db.h>
 #include "raftnode.h"
 #include "master_service_impl.h"
+
 DEFINE_string(data_path,"./data","Path of data stored on");
 DEFINE_int32(port,8100,"port of server to listen on");
 DEFINE_string(master_server,"127.0.1.1:8300","port of server to listen on");

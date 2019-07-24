@@ -20,16 +20,12 @@ int RouteTable::UpdateRouteInfo(const string& min_key,
 		const string& key)->bool{return r.min_key_ < key;});
 	// 确认找到
 	if(iter != route_table_.end() && iter->min_key_ == min_key){
-		// 特殊情况
-		if(iter->state_ == 1) iter->conf_ = conf;
-		else{
-			iter->max_key_ = max_key;
-			iter->raft_group_ = raft_group;
-			iter->leader_addr_ = leader_addr;
-			iter->conf_ = conf;
-			iter->state_ = state;
-			iter->is_alive = true;
-		}
+		iter->max_key_ = max_key;
+		iter->raft_group_ = raft_group;
+		iter->leader_addr_ = leader_addr;
+		iter->conf_ = conf;
+		iter->state_ = state;
+		iter->is_alive = true;
 		bthread_mutex_unlock(&this->mutex_);
 		return 1;
 	}
@@ -71,8 +67,9 @@ bool RouteTable::GetAddr(const string& group, string& addr){
 	bthread_mutex_lock(&this->mutex_);
 	for(auto iter = route_table_.begin(); 
 			iter != route_table_.end(); ++iter)
-		if(iter->raft_group_ == group && iter->leader_addr_!="") {
+		if(iter->raft_group_ == group) {
 			addr = iter->leader_addr_;
+			LOG(INFO)<<"GetAddr"<<addr;
 			bthread_mutex_unlock(&this->mutex_);
 			return true;
 		}

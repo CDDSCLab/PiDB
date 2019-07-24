@@ -34,7 +34,7 @@ public:
 private:
     //TODO 更一般化的形式
     std::mutex mutex_;
-    std::atomic_uint64_t count_;
+    std::atomic<int64_t> count_;
     std::unordered_map<std::string,bool> batchs;
     PiDBResponse* response_;
     google::protobuf::Closure* done_;

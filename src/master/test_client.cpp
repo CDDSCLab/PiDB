@@ -6,7 +6,7 @@
 #include <braft/util.h>
 #include <braft/route_table.h>
 #include <iostream>
-#include "head/master.pb.h"
+#include "master.pb.h"
 
 DEFINE_int32(timeout_ms, 1000, "请求超时时间");
 DEFINE_string(conf, "", "raft组的配置信息（地址）");

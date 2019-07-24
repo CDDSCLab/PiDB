@@ -1,7 +1,52 @@
 #include "pidb_service_impl.h"
 #include "server.h"
 #include "brpc/controller.h"
+#include <brpc/stream.h>
+#include <leveldb/env.h>
+#include <leveldb/db.h>
+
 namespace pidb {
+
+    class StreamReceiver : public brpc::StreamInputHandler {
+    public:
+        StreamReceiver(leveldb::WritableFile *file):file_(file){
+            LOG(INFO)<<"INIT FILE";
+        }
+        virtual int on_received_messages(brpc::StreamId id,
+                                         butil::IOBuf *const messages[],
+                                         size_t size) {
+            //std::ostringstream os;
+            assert(file!= nullptr);
+            for (size_t i = 0; i < size; ++i) {
+                // os << "msg[" << i << "]=" << *messages[i];
+                //LOG(INFO)<<*messages[i];
+                file_->Append(messages[i]->to_string());
+            }
+            //LOG(INFO) << "Received from Stream=" << id << ": " << os.str();
+            return 0;
+        }
+
+        virtual void on_idle_timeout(brpc::StreamId id) {
+            LOG(INFO) << "Stream=" << id << " has no data transmission for a while";
+        }
+
+        virtual void on_closed(brpc::StreamId id) {
+            LOG(INFO) << "Stream=" << id << " is closed";
+            file_->Flush();
+            delete file_;
+            delete this;
+            //file_->Close();
+        }
+
+        ~StreamReceiver(){
+            LOG(INFO)<<"HANDLER IS DONE";
+        }
+
+    private:
+        leveldb::WritableFile *file_;
+    };
+
+
     void PiDBServiceImpl::Put(::google::protobuf::RpcController *controller,
                                 const ::pidb::PiDBRequest *request,
                                 ::pidb::PiDBResponse *response,
@@ -92,6 +137,45 @@ namespace pidb {
             LOG(INFO)<<s.ToString();
             response->set_success(false);
         }
+    }
+    void PiDBServiceImpl::RequestFile(::google::protobuf::RpcController *controller,
+                                      const ::pidb::PiDBFileRequest *request, ::pidb::PiDBFileResponse *response,
+                                      ::google::protobuf::Closure *done) {
+        brpc::ClosureGuard self_gurad(done);
+        LOG(INFO)<<"Reques file"<<request->filename();
+
+        //TODO 判断是否有文件
+        response->set_success(true);
+    }
+
+
+    void PiDBServiceImpl::PushFile(::google::protobuf::RpcController *controller,
+                                   const ::pidb::PiDBFileRequest *request, ::pidb::PiDBFileResponse *response,
+                                   ::google::protobuf::Closure *done) {
+
+        brpc::ClosureGuard done_guard(done);
+
+        brpc::Controller* cntl =
+                static_cast<brpc::Controller*>(controller);
+        brpc::StreamOptions stream_options;
+        leveldb::WritableFile *file;
+
+        std::string path = "./receive/test.txt";
+
+        leveldb::Env *env = leveldb::Env::Default();
+
+        env->NewWritableFile(path,&file);
+
+        StreamReceiver* r=new StreamReceiver(file);
+        stream_options.handler = r;
+        brpc::StreamId _sd;
+        if (brpc::StreamAccept(&_sd, *cntl, &stream_options) != 0) {
+            cntl->SetFailed("Fail to accept stream");
+            LOG(INFO)<<"STREAM ID IS DONE"<<_sd;
+            return;
+        }
+        response->set_success(true);
+
     }
 
 }

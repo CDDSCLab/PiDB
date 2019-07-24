@@ -1,4 +1,5 @@
 #include <unistd.h>
+#include <assert.h>
 #include "guard_dog.h"
 
 namespace pidb{
@@ -18,9 +19,9 @@ namespace pidb{
         bthread_mutex_lock(&this->mutex_);
         // 一个简单的插入vector操作
         // 这里-1的原因是留给下一周期检查，新来的不用检查
-        int current_time = (current_time_ - 1 + things_.size()) 
-            %things_.size();
-        things_[current_time].push_back({func, arg});
+        int current_time = (this->current_time_+things_.size()-1)%things_.size();
+        assert(current_time>=0 && current_time<things_.size());
+        this->things_[current_time].push_back({func, arg});
         bthread_mutex_unlock(&this->mutex_);
     }
 
@@ -31,6 +32,7 @@ namespace pidb{
             LOG(ERROR) << "create bthread guard_dog fail";
         }
         else LOG(INFO) << "create bthread guard_dog success";
+
     }
 
     void* GuardDog::DoHandleThings(void* guard_dog){
@@ -42,19 +44,25 @@ namespace pidb{
             bthread_mutex_lock(&dog->mutex_);
             dog->current_time_ = 0;
             bthread_mutex_unlock(&dog->mutex_);
-            
             // 执行对应节点的事情，若执行“不成功”就删除该事情
             for(int i = 0; i < time; ++i){
                 usleep(dog->interval_ * 1000);
                 bthread_mutex_lock(&dog->mutex_);
+
                 for(auto iter = dog->things_[i].begin();
-                        iter != dog->things_[i].end();){
-                    if(!iter->first(iter->second))
+                        iter != dog->things_[i].end(); ) {
+
+                    if (!iter->first(iter->second))
                         iter = dog->things_[i].erase(iter);
-                    else ++iter;
+                    else {
+                        iter++;
+                    LOG(INFO) << "ALIVE";
                 }
+                }
+                bthread_mutex_unlock(&dog->mutex_);
                 
                 // 时间计数器加1
+                bthread_mutex_lock(&dog->mutex_);
                 dog->current_time_ += 1;
                 bthread_mutex_unlock(&dog->mutex_);
             }

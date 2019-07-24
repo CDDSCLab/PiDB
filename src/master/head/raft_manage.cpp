@@ -6,52 +6,112 @@ RaftManage::RaftManage(){
     options_.connection_type = "";
     options_.timeout_ms = 100;  // ms;
     options_.max_retry = 3;
-    max_time_out_ = 22;   // s
-    normal_time_out_ = 100; // ms
 }
 
-bool RaftManage::InitialStub(MasterService_Stub** stub, const string& addr,
+void RaftManage::InitialStub(pidb::MasterService_Stub** stub, const string& addr,
         brpc::Channel &channel){
-
     if (channel.Init(addr.c_str(), "", &options_) != 0) {
         LOG(ERROR) << "Fail to initialize channel";
-        return false;
+        return;
     }
-    *stub = new pidb::MasterService_Stub(&channel); 
-    return true;
+    *stub = new pidb::MasterService_Stub(&channel);
 }
 
 void RaftManage::AddNode(const string& group, const string& conf,
         const string& min_key, const string& max_key, 
         const string& addr,bool is_split, 
-        void(*CallBack)(void*, brpc::Controller*,
-        PiDBRaftManageResponse* response), void* arg){
-    pidb::MasterService_Stub* stub = NULL;
-    brpc::Channel channel;
+        void(*CallBack)(void*, brpc::Controller*), void* arg){
 
-    if(!InitialStub(&stub, addr, channel)) return;
-    
+//    pidb::MasterService_Stub* stub = NULL;
+//    LOG(INFO)<<"Add Node";
+   brpc::Channel channel;
+//    InitialStub(&stub, addr,channel);
+//    brpc::ChannelOptions options;
+//    if (channel.Init(addr.c_str(), "", &options_) != 0) {
+//            LOG(ERROR) << "Fail to initialize channel";
+//            return;
+//    }
+
+     //Initialize the channel, NULL means using default options.
+    brpc::ChannelOptions options;
+    options.protocol = "baidu_std";
+    options.connection_type = "";
+    options.timeout_ms = 100/*milliseconds*/;
+    options.max_retry = 3;
+    if (channel.Init(addr.c_str(), "", &options) != 0) {
+        LOG(ERROR) << "Fail to pinitialize channel";
+    }
+
+    // Normally, you should not call a Channel directly, but instead construct
+    // a stub Service wrapping it. stub can be shared by all threads as well.
+    pidb::MasterService_Stub stub(&channel);
+
+    brpc::Controller *cntl = new brpc::Controller();
+
+//    google::protobuf::Closure* done = brpc::NewCallback(
+//            &HandleEchoResponse, cntl);
+
+  //  pidb::EchoResponse response1;
+
+    // Notice that you don't have to new request, which can be modified
+    // or destroyed just after stub.Echo is called.
+//    pidb::EchoRequest request1;
+//    request1.set_message("hello world");
+//    LOG(INFO)<<"SEND ECHO";
+//    stub->Echo(cntl,&request1,&response1,done);
+    //sleep(1);
+
+   // InitialStub(&stub, addr,channel);
+//        brpc::Channel channel;
+//        brpc::ChannelOptions options;
+//        if (channel.Init(addr.c_str(), "", &options_) != 0) {
+//            LOG(ERROR) << "Fail to initialize channel";
+//            return;
+//        }
+//        stub = new pidb::MasterService_Stub(&channel);
+
+
+    LOG(INFO)<<"REMOTE RAFT MANAGE ADDR "<<addr;
     if(!is_split){
-        PiDBRaftManageResponse response;
+       // brpc::Controller *cntl = new brpc::Controller;
+        pidb::PiDBRaftManageResponse *response = new PiDBRaftManageResponse();
         pidb::PiDBRaftManageRequest request;
-       
-        request.set_raft_group(group);
-        request.set_raft_conf(conf);
-        request.set_min_key(min_key);
-        request.set_max_key(max_key);
+
         request.set_is_new(true);
+        request.set_raft_group(group);
+//        request.set_raft_conf(conf);
+//        request.set_min_key(min_key);
+//        request.set_max_key(max_key);
 
         // 发送请求
-        brpc::Controller cntl;
-        stub->RaftManage(&cntl, &request, &response, NULL);
+
+
+
+
+
+
+        pidb::EchoResponse response1;
+
+        // Notice that you don't have to new request, which can be modified
+        // or destroyed just after stub.Echo is called.
+        pidb::EchoRequest request1;
+        request1.set_message("hello world");
+        LOG(INFO)<<"SEND ECHO";
+
+       // stub->RaftManage(cntl, &request, response, done);
     }
     else{
+        LOG(INFO)<<"hehehehehehehehehheheheheheh";
         // 异步调用需要一直保存下列内容直到回调函数完成
-        PiDBRaftManageResponse* response = new PiDBRaftManageResponse();
-        brpc::Controller* cntl = new brpc::Controller();
-        cntl->set_timeout_ms(max_time_out_ * 1000);
+        pidb::PiDBRaftManageResponse response;
+
+        //assert(CallBack != nullptr);
 
         pidb::PiDBRaftManageRequest request;
+        pidb::PiDBRaftManageRequest request1;
+
+
+        //delete &request1;
         request.set_raft_group(group);
         request.set_raft_conf(conf);
         request.set_min_key(min_key);
@@ -60,83 +120,52 @@ void RaftManage::AddNode(const string& group, const string& conf,
 
         // 发送请求
         google::protobuf::Closure* done = brpc::NewCallback(
-            CallBack, arg, cntl, response);
-        stub->RaftManage(cntl, &request, response, done);
-    } 
-    // 清理内存？?????
+                &HandleEchoResponse,cntl, &response);
+
+        LOG(INFO)<<"RaftManage send request";
+           stub.RaftManage(cntl, &request, &response, done);
+
+//        if(!cntl->Failed()){
+//            LOG(INFO)<<"RAFT MANAGER SEND SUCCESS"<<request.raft_group();
+//        }else{
+//            LOG(INFO)<<"RAFT MANAGER SEND FAIL "<<cntl->ErrorText();
+//        }
+    }
+
 }
 
-bool RaftManage::PullData(const string& old_addr, const string& old_group,
-        const string& old_conf, const string& new_conf,
-        const string& new_group){
-    // 这是是给raft发请求，跟上面的单纯的rpc不一样
-    if (braft::rtb::update_configuration(new_group,new_conf) != 0) {
-        LOG(ERROR) << "Fail to register configuration " << new_conf
-                   << " of group " << new_group;
+bool RaftManage::PullData(const string& old_addr, const string& group,
+        const string& conf, const string& new_addr){
+    MasterService_Stub* stub = NULL;
+    brpc::Channel channel;
+    InitialStub(&stub, new_addr,channel);
+    
+    // 同步调用
+    PiDBPullResponse response;
+    pidb::PiDBPullRequest request;
+    request.set_leader_addr(old_addr);
+    request.set_raft_group(group);
+    request.set_raft_conf(conf);
+
+    // 发送请求
+    brpc::Controller* cntl = new brpc::Controller();
+    stub->PullData(cntl, &request, &response, NULL);
+    LOG(INFO)<<"PullData";
+    if(cntl->Failed()){
+        delete cntl;
         return false;
     }
-    braft::PeerId leader;  // 新region的leader
-    while (true) {
-        // 选新region的leader
-        if (braft::rtb::select_leader(new_group, &leader) != 0) {
-            // 如果没有leader，直接返回失败重新建raft（）
-            // 因为是选出leader后才会调用此函数
-            braft::rtb::refresh_leader(new_group, normal_time_out_);
-            LOG(INFO)<<"分裂的新raft没有leader\n";
-            continue;
-        }
-
-        // 现在有leader了，发具体通知
-        MasterService_Stub* stub = NULL;
-        brpc::Channel channel;
-
-        auto addr = leader.to_string();
-        addr.erase(addr.begin()+addr.rfind(":"),addr.end());
-        LOG(INFO)<<addr;
-        if(!InitialStub(&stub, addr, channel))
-            // 可能是leader变了
-            continue;
-
-        // 同步调用
-        PiDBPullResponse response;
-        pidb::PiDBPullRequest request;
-        request.set_leader_addr(old_addr);
-        request.set_raft_group(old_group);
-        request.set_raft_conf(old_conf);
-
-        // 发送请求
-        brpc::Controller* cntl = new brpc::Controller();
-        cntl->set_timeout_ms(normal_time_out_);
-        LOG(INFO)<<"PULL dATA";
-        assert(stub!= nullptr);
-        stub->PullData(cntl, &request, &response, NULL);
-        LOG(INFO)<<"PULL dATA";
-        // 直接失败，不管了直接重新建立raft
-        if(cntl->Failed()){
-            LOG(INFO)<<cntl->ErrorText();
-            delete cntl;
-            return false;
-        }
-        // 有更新leader
-        if (!response.success() && response.has_redirect()) {
-            braft::rtb::update_leader(new_group, response.redirect());
-            continue;
-        }
-
-//        delete cntl;
-//        delete stub;
-        return true;
-    }
+    return true;
 }
 
 void RaftManage::RemoveNode(const string& group, 
         const string& addr){
     pidb::MasterService_Stub* stub = NULL;
     brpc::Channel channel;
-    if(!InitialStub(&stub, addr, channel)) return;
+    InitialStub(&stub, addr,channel);
     
     // 异步调用需要一直保存下列内容直到回调函数完成
-    PiDBRaftManageResponse* response = new PiDBRaftManageResponse();
+    pidb::PiDBRaftManageResponse* response = new pidb::PiDBRaftManageResponse();
     brpc::Controller* cntl = new brpc::Controller();
 
     pidb::PiDBRaftManageRequest request;

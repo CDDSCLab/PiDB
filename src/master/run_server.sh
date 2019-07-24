@@ -6,7 +6,7 @@ if [[ ! -d "$mydir" ]]; then mydir="$PWD"; fi
 
 # define command-line flags
 DEFINE_string valgrind 'false' 'Run in valgrind'
-DEFINE_integer server_num '3' 'Number of servers'
+DEFINE_integer server_num '1' 'Number of servers'
 DEFINE_boolean clean 1 'Remove old "runtime" dir before running'
 DEFINE_integer port 8300 "Port of the first server"
 

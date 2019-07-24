@@ -2,8 +2,11 @@
 #define PIDB_PIDB_SERVICE_IMPL_H_
 #include "pidb.pb.h"
 
+
+
 namespace pidb{
 class Server;
+
 class PiDBServiceImpl:public PiDBService{
     public:
     explicit PiDBServiceImpl(Server* server):server_(server){};
@@ -42,6 +45,16 @@ class PiDBServiceImpl:public PiDBService{
                  const ::pidb::PiDBIterator* request,
                  ::pidb::PiDBResponse* response,
                  ::google::protobuf::Closure* done) override ;
+    void RequestFile(::google::protobuf::RpcController* controller,
+                     const ::pidb::PiDBFileRequest* request,
+                     ::pidb::PiDBFileResponse* response,
+                     ::google::protobuf::Closure* done) override ;
+
+    void PushFile(::google::protobuf::RpcController* controller,
+                  const ::pidb::PiDBFileRequest* request,
+                  ::pidb::PiDBFileResponse* response,
+                  ::google::protobuf::Closure* done) override ;
+
     private:
     Server *server_;
 };

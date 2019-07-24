@@ -3,7 +3,7 @@ project(pidb C CXX)
 
 option(EXAMPLE_LINK_SO "Whether examples are linked dynamically" ON)
 option(LINK_TCMALLOC "Link tcmalloc if possible" ON)
-option(BUILD_UNITEST "Build Test" OFF)
+option(BUILD_UNITTEST "Build Test" OFF)
 # execute_process(
 #    COMMAND bash -c "find /usr/local/ -type d -path \"*include/levledb\" | xargs dirname | xargs dirname | tr -d '\n'"
 #    OUTPUT_VARIABLE OUTPUT_PATH
@@ -160,6 +160,9 @@ target_sources(pidb PUBLIC
     "${PROJECT_SOURCE_DIR}/${PIDB_SERVER_DIR}/context_cache.cpp"
 
     "${PROJECT_SOURCE_DIR}/src/include/pidb/options.h"
+        "${PROJECT_SOURCE_DIR}/${PIDB_SERVER_DIR}/remote_file_send.h"
+        "${PROJECT_SOURCE_DIR}/${PIDB_SERVER_DIR}/remote_file_send.cpp"
+
 
 )
 
@@ -185,7 +188,7 @@ set(DYNAMIC_LIB
     z
     )
 
-if (BUILD_TEST)
+if (BUILD_UNITTEST)
     enable_testing()
     add_subdirectory(test)
 endif ()

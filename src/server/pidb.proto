@@ -42,6 +42,16 @@ message PiDBIterator{
 	optional string start = 2;   // Iterator的起始位置   暂时为 optional
 	optional string stop  = 3;   // Iterator的终点位置
 }
+
+message PiDBFileRequest{
+	required string  filename=1;
+}
+
+message PiDBFileResponse{
+	required bool success = 1;
+}
+
+
 service PiDBService {
 	rpc Put(PiDBRequest) returns (PiDBResponse);
 	rpc Get(PiDBRequest) returns (PiDBResponse);
@@ -50,5 +60,7 @@ service PiDBService {
 	rpc ReleaseSnapshot(PiDBSnapshot) returns (Success);
 	rpc GetIterator(PiDBIterator) returns (PiDBIterator);
 	rpc Iterate (PiDBIterator) returns (PiDBResponse);    //Iterate  暂时默认为只能next
+	rpc RequestFile (PiDBFileRequest) returns(PiDBFileResponse);
+	rpc PushFile (PiDBFileRequest) returns (PiDBFileResponse);
 }
 

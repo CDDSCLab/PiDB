@@ -2,21 +2,20 @@
 
 using std::string;
 namespace pidb{
-Master::Master(MasterArg* master_arg){
+Master::Master(MasterArg* maste_arg){
     route_table_ok_ = new RouteTable();
     route_table_bad_ = new RouteTable();
     store_table_ = StoreHeartbeat::Initial();
-    route_table_ok_->ReadFromFile(master_arg->rto_path);
-    route_table_bad_->ReadFromFile(master_arg->rtb_path);
-    store_table_->ReadFromFile(master_arg->st_path);
+    route_table_ok_->ReadFromFile(maste_arg->rto_path);
+    route_table_bad_->ReadFromFile(maste_arg->rtb_path);
+    store_table_->ReadFromFile(maste_arg->st_path);
     rm_ = new RaftManage();
-    raft_copy_num_ = master_arg->raft_copy_num;
-    region_heart_ = master_arg->region_heart;
+    raft_copy_num_ = maste_arg->raft_copy_num;
     // 启动看门狗检查存活
     guard_dog_store_ = new GuardDog(
-        master_arg->store_heart, master_arg->check_store_interval);
+        maste_arg->store_heart, maste_arg->check_store_interval);
     guard_dog_region_ = new GuardDog(
-        master_arg->region_heart, master_arg->check_region_interval);
+        maste_arg->region_heart, maste_arg->check_region_interval);
     guard_dog_store_->HandleThings();
     guard_dog_region_->HandleThings();
 
@@ -61,8 +60,8 @@ void Master::QueryRoute(const PiDBClientRequest* request,
     }
     else if(this->route_table_bad_->GetRouteInfo(key,group,addr,conf,state)){
         // 数据不完整（只有leader），但已经可以写入
-        if(state == -3 ){//&& (request->action() == PiDBClientRequest_Action_PUT || 
-                //request->action() == PiDBClientRequest_Action_DELETE)){
+        if(state == -3 && (request->action() == PiDBClientRequest_Action_PUT || 
+                request->action() == PiDBClientRequest_Action_DELETE)){
             response->set_success(true);
             response->set_leader_addr(addr);
             response->set_raft_group(group);
@@ -95,16 +94,17 @@ void* Master::DoAddRegion(void* arg){
     
     // 一直等到有足够的store
     hehe:
-    while(master->store_table_->GetSize() < master->raft_copy_num_) 
+    while(master->store_table_->GetSize() < master->raft_copy_num_) ///////////////!!!!!!!!!!!!!!!!!
         sleep(3);
     std::vector<string> v;
-    if(master->store_table_->GetStoreInfo(master->raft_copy_num_,
+    if(master->store_table_->GetStoreInfo(master->raft_copy_num_,     ///////////////!!!!!!!!!!!!!!!!!
             nullptr, &v, true) != 0) goto hehe;
 
     // 拼接raft配置
     string conf("");
-    for(auto&s : v) conf = conf + s + ":0";
+    for(auto&s : v) conf = conf + s + ":0,";
     // 通知找出来的store新增region
+    LOG(INFO)<<conf;
     for(auto&s : v){
         if(is_split)
             master->rm_->AddNode(group, conf, min_key, max_key, s,
@@ -113,10 +113,7 @@ void* Master::DoAddRegion(void* arg){
             master->rm_->AddNode(group, conf, min_key, max_key, s,
                 is_split, nullptr, nullptr);
     }
-    if(is_split) master->route_table_bad_->UpdateRouteInfo(min_key, 
-        max_key, group, "", conf, -2);
-    else master->route_table_bad_->UpdateRouteInfo(min_key, 
-        max_key, group, "", conf, -1);
+
     // 释放内存
     delete rm;
 }
@@ -208,50 +205,38 @@ void Master::RegionSplit(const PiDBSplitRequest* request,
     return node_->apply(task);
 }
 
-void Master::IfSplitHasLeader(void* arg, brpc::Controller* cntl,
-        PiDBRaftManageResponse* response){
-    std::unique_ptr<brpc::Controller> cntl_guard(cntl);
-    std::unique_ptr<pidb::PiDBRaftManageResponse> response_guard(response);
-
-    Master* master = ((ISHL*)arg)->master_;
-    string old_group = ((ISHL*)arg)->old_group_;
-    string new_group = ((ISHL*)arg)->new_group_;
-    auto rto = master->route_table_ok_, rtb = master->route_table_bad_;
-    string new_min_key, new_max_key;   // 新region的
-    rtb->GetRange(new_group, new_min_key, new_max_key);
-
-    if (cntl->Failed()) {
-        // 重新建立分裂的新raft组
-        //master->AddRegion(new_min_key, new_max_key, true, arg);
-        LOG(WARNING) << "分裂的新raft选leader失败, " << cntl->ErrorText();
-        return;
-    }
-    // leader选出来了
-    else if(response->is_leader()){
-        // 开始通知leader拉数据
-        string old_conf, new_conf, old_addr;
-        string new_addr = response->leader_addr();
-        string old_min_key, old_max_key;  // 老region的
-        rto->GetRange(old_group, old_min_key, old_max_key);
-        rtb->GetConf(new_group, new_conf);
-
-        if(rto->GetConf(old_group, old_conf) && 
-                rto->GetAddr(old_group, old_addr)){
-            // 更新路由表
-            rto->UpdateRouteInfo(old_min_key, new_min_key,
-                old_group, old_addr, old_conf, 1);
-            rtb->UpdateRouteInfo(new_min_key, new_max_key,
-                new_group, new_addr, new_conf, -3);
-            // 通知拉数据
-            if(!master->rm_->PullData(old_addr, old_group, 
-                old_conf, new_conf, new_group)) { 
-                // 重新生成新的raft
-                LOG(WARNING)<<"某个分裂的新region凉了，新建raft\n"; 
-                master->AddRegion(new_min_key, new_max_key, true, arg);
-            }
-        }
-        else LOG(WARNING)<<"某个待分裂的老region凉了，无法解决\n"; 
-    }
+void Master::IfSplitHasLeader(void* arg, brpc::Controller* cntl){
+    LOG(INFO)<<"Split Callback";
+//    Master* master = ((ISHL*)arg)->master_;
+//    string old_group = ((ISHL*)arg)->old_group_;
+//    string new_group = ((ISHL*)arg)->new_group_;
+//
+//    if (cntl->Failed()) {
+//        // 重新建立分裂的新raft组
+//        string min_key, max_key;
+//        master->route_table_bad_->GetRange(new_group, min_key, max_key);
+//        //master->AddRegion(min_key, max_key, true, arg);
+//
+//        LOG(WARNING) << "Fail to Split get leader, " << cntl->ErrorText();
+//        return;
+//    }
+//    else{
+//        // 开始通知leader拉数据
+//        string conf;
+//        string old_addr;
+//        string new_addr;
+//        LOG(INFO)<<"DD";
+//        hehe:
+//        if(master->route_table_ok_->GetConf(old_group, conf) &&
+//                master->route_table_ok_->GetAddr(old_group, old_addr) &&
+//                master->route_table_bad_->GetAddr(new_group, new_addr)){
+//            LOG(INFO)<<"pulldata request";
+//            LOG(INFO)<<new_addr;
+//            // 可能new_leader换了，重新来
+//            if(!master->rm_->PullData(old_addr, old_group,
+//                conf, new_addr)) { sleep(3);goto hehe;}
+//        }
+//    }
 }
 
 int Master::Start(int port, string conf, string group){
@@ -328,7 +313,7 @@ void Master::DoHandleStore(braft::Iterator& iter){
     // 解析参数
     if (iter.done()) {
         // task应用到节点了，从闭包中获取值避免额外解析
-        StoreClosure* s = (StoreClosure*)(iter.done());
+        StoreClosure *s = dynamic_cast<StoreClosure *>(iter.done());
         response = s->response();
         *store_addr = s->request()->store_addr();
         if (s->request()->has_region_num())
@@ -351,14 +336,19 @@ void Master::DoHandleStore(braft::Iterator& iter){
     // 处理并回复
     if (response) {
         // 若是新的store就放入看门狗测活
-        if(!store_table_->UpdateStoreInfo(*store_addr,region_num, leader_num))
-            guard_dog_store_->AddThing(StoreHeartbeat::CheckIsAlive, 
+//        LOG(INFO)<<"ADDR:"<<*store_addr<<"num"<<region_num<<" "<<leader_num;
+        if(!store_table_->UpdateStoreInfo(*store_addr,region_num, leader_num)){
+            guard_dog_store_->AddThing(StoreHeartbeat::CheckIsAlive,
                 store_addr);
+            LOG(INFO)<<"WRITE SUCCESS";
+        }
+
         response->set_success(true);
     }
 }
 
 void Master::DoHandleRegion(braft::Iterator& iter){
+    route_table_ok_->PrintInfo();
     PiDBRegionResponse* response = NULL;
     string leader_addr("");  // 发送心跳的leader的地址
     string raft_group("");   // region所在raft组名
@@ -376,10 +366,10 @@ void Master::DoHandleRegion(braft::Iterator& iter){
         peer_num = s->request()->peer_addr_size();
         for(int i = 0; i<peer_num; ++i){
             v.push_back(s->request()->peer_addr(i));
-            conf = conf + s->request()->peer_addr(i) + ":0";
+            conf = conf + s->request()->peer_addr(i) + ":0,";
         }
         v.push_back(leader_addr);
-        conf = conf + leader_addr + ":0";
+        conf = conf + leader_addr + ":0,";
     } 
     else {
         // 否则从日志中解析
@@ -391,10 +381,10 @@ void Master::DoHandleRegion(braft::Iterator& iter){
         peer_num = request.peer_addr_size();
         for(int i =0; i<peer_num; ++i){
             v.push_back(request.peer_addr(i));
-            conf = conf + request.peer_addr(i) + ":0";
+            conf = conf + request.peer_addr(i) + ":0,";
         }
         v.push_back(leader_addr);
-        conf = conf + leader_addr + ":0";
+        conf = conf + leader_addr + ":0,";
     }
 
     // 处理并回复
@@ -422,16 +412,19 @@ void Master::DoHandleRegion(braft::Iterator& iter){
 
         // 路由表处理好了来处理raft节点的问题（维持在默认最大副本数）
         int need_num = peer_num + 1 - raft_copy_num_;
+
         std::vector<string> vout;
         // 需要新增
         if(need_num < 0 && store_table_->
                 GetStoreInfo(-need_num, &v, &vout, true) == 0){
-            for(auto&s : vout) conf = conf + s + ":0";
+
+            for(auto&s : vout) conf = conf + s + ":0,";
             for(auto&s : vout)
                 rm_->AddNode(raft_group, conf, min_key, max_key, s,
                     false, nullptr, nullptr);
             response->set_success(true);
             response->set_conf(conf);
+
         }
         // 需要删除
         else if(need_num > 0 && store_table_->
@@ -448,14 +441,19 @@ void Master::DoHandleRegion(braft::Iterator& iter){
                         break;
                     }
                 }
-                if(!flag) conf = conf + s1 + ":0";
+                if(!flag) conf = conf + s1 + ":0,";
             }
             response->set_success(true);
             response->set_conf(conf);
         }
         else if(need_num == 0) response->set_success(true);
-        else response->set_success(false);
+
+        else{
+            response->set_success(false);
+            LOG(INFO)<<"SPLIT"<<need_num;
+        }
     }
+
 }
 
 void Master::DoRegionSplit(braft::Iterator& iter){
@@ -511,6 +509,7 @@ void Master::on_apply(braft::Iterator& iter) {
         butil::IOBuf data = iter.data();
         uint8_t type = RaftOpType::DefalutOp_;
         data.cutn(&type, sizeof(uint8_t));
+
         switch (type) {
             case RaftOpType::StoreHeartOp_:{
                 DoHandleStore(iter);
@@ -536,6 +535,14 @@ void Master::on_leader_stop(const butil::Status& status) {
     leader_term_.store(-1, butil::memory_order_release);
     LOG(INFO) << "节点下台(非leader):" << status;
 }
+
+int Master::on_snapshot_load(braft::SnapshotReader *reader) {
+    return 0;
+
+}
+void Master::on_snapshot_save(braft::SnapshotWriter *writer, braft::Closure *done) {
+    LOG(INFO)<<"snapshot_save";
+}
 void Master::on_shutdown() {
     LOG(INFO) << "节点关闭";
 }
@@ -551,6 +558,7 @@ void Master::on_stop_following(const ::braft::LeaderChangeContext& ctx) {
 void Master::on_start_following(const ::braft::LeaderChangeContext& ctx) {
     LOG(INFO) << "节点启动后：" << ctx;
 }
+
 
 void ClientClosure::Run() {
     // Auto delete this after Run()

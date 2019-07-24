@@ -16,6 +16,8 @@ include(FindProtobuf)
 
 
 include_directories(${Protobuf_INCLUDE_DIRS})
+include_directories("../src/server")
+link_directories("../cmake-build-debug")
 
 if (NOT PROTOBUF_PROTOC_EXECUTABLE)
     get_filename_component(PROTO_LIB_DIR ${PROTOBUF_LIBRARY} DIRECTORY)
@@ -119,10 +121,10 @@ set(DYNAMIC_LIB
         ${PROTOBUF_LIBRARY}
         ${GPERFTOOLS_LIBRARIES}
         ${LEVELDB_LIB}
-        ${BRAFT_LIB}
         ${BRPC_LIB}
         rt
         ssl
+        pidb
         crypto
         dl
         z
