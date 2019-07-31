@@ -65,11 +65,26 @@ namespace pidb{
         char *buffer = new char[128*1024];
         leveldb::Slice res;
         butil::IOBuf msg;
-
+        int retry = 5;
         //每次读写128k数据
         while ((st_=file->Read(128*1024,&res,buffer)).ok() && res.size()>0){
             msg.append(buffer,res.size());
-            CHECK_EQ(0, brpc::StreamWrite(stream_, msg));
+            //需要重试
+            auto code = brpc::StreamWrite(stream_, msg);
+            LOG(INFO)<<code;
+            if(code==EAGAIN){
+                //重试五次
+                LOG(INFO)<<"RETRY";
+                for (retry =0;retry<5 && code==EAGAIN;retry++){
+                    code = brpc::StreamWrite(stream_, msg);
+                    usleep(10000);
+                }
+                if(retry>=5){
+                    st_ = leveldb::Status::Corruption("Failt to send stream to remote server");
+                    return;
+                }
+
+            }
             LOG(INFO)<<res.size();
             res.clear();
             msg.clear();

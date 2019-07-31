@@ -124,7 +124,6 @@ endif()
 
 
 add_subdirectory("${PROJECT_SOURCE_DIR}/src/libs/json11")
-include_directories(${PROTO_HEADER} ${MASTER_PROTO_HEADER})
 include_directories("${PROJECT_SOURCE_DIR}/src/libs")
 include_directories(${LEVELDB_INCLUDE_PATH})
 include_directories("${PROJECT_SOURCE_DIR}/src")

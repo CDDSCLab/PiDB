@@ -108,7 +108,7 @@ namespace pidb {
         virtual int Size() const noexcept{ return map_.size();}
     private:
         std::unordered_map<uint64_t, std::shared_ptr<T>> map_;
-        std::atomic_uint64_t context_id_;
+        std::atomic<int64_t> context_id_;
     };
 
 
