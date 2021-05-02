@@ -1,5 +1,5 @@
-# db-project
-[![Build Status](https://travis-ci.com/dmclNewbee302/db-project.svg?branch=master)](https://travis-ci.com/dmclNewbee302/db-project)
+# PiDB-distributed leveldb 
+[![Build Status](https://travis-ci.com/CDDSCLab/PiDB.svg?branch=master)](https://travis-ci.com/github/CDDSCLab/PiDB)
 ## 所依赖的库
 1. [brpc](https://github.com/apache/incubator-brpc)
 2. [braft](https://github.com/brpc/braft)
